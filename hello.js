@@ -367,8 +367,10 @@ Main.main = function() {
 Main.__super__ = hxd_App;
 Main.prototype = $extend(hxd_App.prototype,{
 	init: function() {
-		hxd_Res.set_loader(new hxd_res_Loader(new hxd_fs_EmbedFileSystem(haxe_Unserializer.run("og"))));
+		hxd_Res.set_loader(new hxd_res_Loader(new hxd_fs_EmbedFileSystem(haxe_Unserializer.run("oy7:map.tmxtg"))));
 		hxd_Window.getInstance().addEventTarget($bind(this,this.OnEvent));
+		var map = new hxd_res_TiledMap(hxd_Res.get_loader().loadCache("map.tmx",hxd_res_TiledMap).entry);
+		haxe_Log.trace(map.toMap(),{ fileName : "src/Main.hx", lineNumber : 24, className : "Main", methodName : "init"});
 		var font = hxd_res_DefaultFont.get();
 		var tf = new h2d_Text(font);
 		tf.set_text("Hello World");
@@ -38891,9 +38893,112 @@ haxe_xml__$Access_AttribAccess.resolve = function(this1,name) {
 	}
 	return v;
 };
+var haxe_xml__$Access_HasAttribAccess = {};
+haxe_xml__$Access_HasAttribAccess.resolve = function(this1,name) {
+	if(this1.nodeType == Xml.Document) {
+		throw haxe_Exception.thrown("Cannot access document attribute " + name);
+	}
+	return this1.exists(name);
+};
 var haxe_xml__$Access_HasNodeAccess = {};
 haxe_xml__$Access_HasNodeAccess.resolve = function(this1,name) {
 	return this1.elementsNamed(name).hasNext();
+};
+var haxe_xml__$Access_NodeListAccess = {};
+haxe_xml__$Access_NodeListAccess.resolve = function(this1,name) {
+	var l = [];
+	var x = this1.elementsNamed(name);
+	while(x.hasNext()) {
+		var x1 = x.next();
+		if(x1.nodeType != Xml.Document && x1.nodeType != Xml.Element) {
+			throw haxe_Exception.thrown("Invalid nodeType " + (x1.nodeType == null ? "null" : XmlType.toString(x1.nodeType)));
+		}
+		var this1 = x1;
+		l.push(this1);
+	}
+	return l;
+};
+var haxe_xml_Access = {};
+haxe_xml_Access.get_innerData = function(this1) {
+	if(this1.nodeType != Xml.Document && this1.nodeType != Xml.Element) {
+		throw haxe_Exception.thrown("Bad node type, expected Element or Document but found " + (this1.nodeType == null ? "null" : XmlType.toString(this1.nodeType)));
+	}
+	var it = new haxe_iterators_ArrayIterator(this1.children);
+	if(!it.hasNext()) {
+		var tmp;
+		if(this1.nodeType == Xml.Document) {
+			tmp = "Document";
+		} else {
+			if(this1.nodeType != Xml.Element) {
+				throw haxe_Exception.thrown("Bad node type, expected Element but found " + (this1.nodeType == null ? "null" : XmlType.toString(this1.nodeType)));
+			}
+			tmp = this1.nodeName;
+		}
+		throw haxe_Exception.thrown(tmp + " does not have data");
+	}
+	var v = it.next();
+	if(it.hasNext()) {
+		var n = it.next();
+		var tmp;
+		if(v.nodeType == Xml.PCData && n.nodeType == Xml.CData) {
+			if(v.nodeType == Xml.Document || v.nodeType == Xml.Element) {
+				throw haxe_Exception.thrown("Bad node type, unexpected " + (v.nodeType == null ? "null" : XmlType.toString(v.nodeType)));
+			}
+			tmp = StringTools.trim(v.nodeValue) == "";
+		} else {
+			tmp = false;
+		}
+		if(tmp) {
+			if(!it.hasNext()) {
+				if(n.nodeType == Xml.Document || n.nodeType == Xml.Element) {
+					throw haxe_Exception.thrown("Bad node type, unexpected " + (n.nodeType == null ? "null" : XmlType.toString(n.nodeType)));
+				}
+				return n.nodeValue;
+			}
+			var n2 = it.next();
+			var tmp;
+			if(n2.nodeType == Xml.PCData) {
+				if(n2.nodeType == Xml.Document || n2.nodeType == Xml.Element) {
+					throw haxe_Exception.thrown("Bad node type, unexpected " + (n2.nodeType == null ? "null" : XmlType.toString(n2.nodeType)));
+				}
+				tmp = StringTools.trim(n2.nodeValue) == "";
+			} else {
+				tmp = false;
+			}
+			if(tmp && !it.hasNext()) {
+				if(n.nodeType == Xml.Document || n.nodeType == Xml.Element) {
+					throw haxe_Exception.thrown("Bad node type, unexpected " + (n.nodeType == null ? "null" : XmlType.toString(n.nodeType)));
+				}
+				return n.nodeValue;
+			}
+		}
+		var tmp;
+		if(this1.nodeType == Xml.Document) {
+			tmp = "Document";
+		} else {
+			if(this1.nodeType != Xml.Element) {
+				throw haxe_Exception.thrown("Bad node type, expected Element but found " + (this1.nodeType == null ? "null" : XmlType.toString(this1.nodeType)));
+			}
+			tmp = this1.nodeName;
+		}
+		throw haxe_Exception.thrown(tmp + " does not only have data");
+	}
+	if(v.nodeType != Xml.PCData && v.nodeType != Xml.CData) {
+		var tmp;
+		if(this1.nodeType == Xml.Document) {
+			tmp = "Document";
+		} else {
+			if(this1.nodeType != Xml.Element) {
+				throw haxe_Exception.thrown("Bad node type, expected Element but found " + (this1.nodeType == null ? "null" : XmlType.toString(this1.nodeType)));
+			}
+			tmp = this1.nodeName;
+		}
+		throw haxe_Exception.thrown(tmp + " does not have data");
+	}
+	if(v.nodeType == Xml.Document || v.nodeType == Xml.Element) {
+		throw haxe_Exception.thrown("Bad node type, unexpected " + (v.nodeType == null ? "null" : XmlType.toString(v.nodeType)));
+	}
+	return v.nodeValue;
 };
 var haxe_xml_XmlParserException = function(message,xml,position) {
 	this.xml = xml;
@@ -48196,6 +48301,64 @@ hxd_res_Sound.prototype = $extend(hxd_res_Resource.prototype,{
 		}
 	}
 	,__class__: hxd_res_Sound
+});
+var hxd_res_TiledMap = function(entry) {
+	hxd_res_Resource.call(this,entry);
+};
+$hxClasses["hxd.res.TiledMap"] = hxd_res_TiledMap;
+hxd_res_TiledMap.__name__ = "hxd.res.TiledMap";
+hxd_res_TiledMap.__super__ = hxd_res_Resource;
+hxd_res_TiledMap.prototype = $extend(hxd_res_Resource.prototype,{
+	toMap: function() {
+		var data = this.entry.getBytes().toString();
+		var base = new haxe_crypto_BaseCode(haxe_io_Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"));
+		var x = Xml.parse(data).firstElement();
+		if(x.nodeType != Xml.Document && x.nodeType != Xml.Element) {
+			throw haxe_Exception.thrown("Invalid nodeType " + (x.nodeType == null ? "null" : XmlType.toString(x.nodeType)));
+		}
+		var this1 = x;
+		var x = this1;
+		var layers = [];
+		var _g = 0;
+		var _g1 = haxe_xml__$Access_NodeListAccess.resolve(x,"layer");
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			var data = StringTools.trim(haxe_xml_Access.get_innerData(haxe_xml__$Access_NodeAccess.resolve(l,"data")));
+			while(HxOverrides.cca(data,data.length - 1) == 61) data = HxOverrides.substr(data,0,data.length - 1);
+			var bytes = haxe_io_Bytes.ofString(data);
+			var bytes1 = base.decodeBytes(bytes);
+			bytes1 = format_tools_Inflate.run(bytes1);
+			var input = new haxe_io_BytesInput(bytes1);
+			var data1 = [];
+			var _g2 = 0;
+			var _g3 = bytes1.length >> 2;
+			while(_g2 < _g3) {
+				var i = _g2++;
+				data1.push(input.readInt32());
+			}
+			layers.push({ name : haxe_xml__$Access_AttribAccess.resolve(l,"name"), opacity : haxe_xml__$Access_HasAttribAccess.resolve(l,"opacity") ? parseFloat(haxe_xml__$Access_AttribAccess.resolve(l,"opacity")) : 1., objects : [], data : data1});
+		}
+		var _g = 0;
+		var _g1 = haxe_xml__$Access_NodeListAccess.resolve(x,"objectgroup");
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			var objs = [];
+			var _g2 = 0;
+			var _g3 = haxe_xml__$Access_NodeListAccess.resolve(l,"object");
+			while(_g2 < _g3.length) {
+				var o = _g3[_g2];
+				++_g2;
+				if(haxe_xml__$Access_HasAttribAccess.resolve(o,"name")) {
+					objs.push({ name : haxe_xml__$Access_AttribAccess.resolve(o,"name"), type : haxe_xml__$Access_HasAttribAccess.resolve(o,"type") ? haxe_xml__$Access_AttribAccess.resolve(o,"type") : null, x : Std.parseInt(haxe_xml__$Access_AttribAccess.resolve(o,"x")), y : Std.parseInt(haxe_xml__$Access_AttribAccess.resolve(o,"y"))});
+				}
+			}
+			layers.push({ name : haxe_xml__$Access_AttribAccess.resolve(l,"name"), opacity : 1., objects : objs, data : null});
+		}
+		return { width : Std.parseInt(haxe_xml__$Access_AttribAccess.resolve(x,"width")), height : Std.parseInt(haxe_xml__$Access_AttribAccess.resolve(x,"height")), layers : layers};
+	}
+	,__class__: hxd_res_TiledMap
 });
 var hxd_snd_ChannelBase = function() {
 	this.volume = 1.;
@@ -60913,7 +61076,7 @@ var Float = Number;
 var Bool = Boolean;
 var Class = { };
 var Enum = { };
-haxe_Resource.content = [];
+haxe_Resource.content = [{ name : "R_map_tmx", data : "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4NCjxtYXAgdmVyc2lvbj0iMS40IiB0aWxlZHZlcnNpb249IjEuNC4zIiBvcmllbnRhdGlvbj0ib3J0aG9nb25hbCIgcmVuZGVyb3JkZXI9ImxlZnQtdXAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdGlsZXdpZHRoPSI4IiB0aWxlaGVpZ2h0PSI4IiBpbmZpbml0ZT0iMCIgbmV4dGxheWVyaWQ9IjIiIG5leHRvYmplY3RpZD0iMSI+DQogPGVkaXRvcnNldHRpbmdzPg0KICA8ZXhwb3J0IHRhcmdldD0iLiIvPg0KIDwvZWRpdG9yc2V0dGluZ3M+DQogPHRpbGVzZXQgZmlyc3RnaWQ9IjEiIHNvdXJjZT0iYXRsYXMudHN4Ii8+DQogPGxheWVyIGlkPSIxIiBuYW1lPSJUaWxlIExheWVyIDEiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+DQogIDxkYXRhIGVuY29kaW5nPSJjc3YiPg0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDIzNzgsMjM3OSwyMzgwLDIzODEsMjM4MiwyMzgzLDIzODYsMjM4NiwyMzg2LDIzODYsMjM4NiwyMzg2LDIzODYsMjM4NywyNTMyLDI1MzMsMjUzNCwyNTM1LDI1MzYsMjUzNywwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwyNDQyLDI0NDMsMjQ0NCwyNDQ1LDI0NDYsMjQ0NywyNDUwLDI0NTAsMjQ1MCwyNDUwLDI0NTAsMjQ1MCwyNDUwLDI0NTEsMjU5NiwyNTk3LDI1OTgsMjU5OSwyNjAwLDI2MDEsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMjUwNiwyNTA3LDI1MDgsMjUwOSwyNTEwLDI1MTEsMjUxNCwyNTE0LDI1MTQsMjUxNCwyNTE0LDI1MTQsMjUxNCwyNTE1LDI2NjAsMjY2MSwyNjYyLDI2NjMsMjY2NCwyNjY1LDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDI1NzAsMjU3MSwyNTcyLDI1NzMsMjU3NCwyNTc1LDI1NzgsMjU3OCwyNTc4LDI1NzgsMjU3OCwyNTc4LDI1NzgsMjU3OSwyNzI0LDI3MjUsMjcyNiwyNzI3LDI3MjgsMjcyOSwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwyNjM0LDI2MzUsMjYzNiwyNjM3LDI2MzgsMjYzOSwyNjQyLDI2NDIsMjY0MiwyNjQyLDI2NDIsMjY0MiwyNjQyLDI2NDMsMjc4OCwyNzg5LDI3OTAsMjc5MSwyNzkyLDI3OTMsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMjY5OCwyNjk5LDI3MDAsMjcwMSwyNzAyLDI3MDMsMjcwNiwyNzA2LDI3MDYsMjcwNiwyNzA2LDI3MDYsMjcwNiwyNzA3LDI4NTIsMjg1MywyODU0LDI4NTUsMjg1NiwyODU3LDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDI4NTIsMjg1MywyODU0LDI4NTUsMjg1NiwyODU3LDI4OTYsMjg5NywyODk4LDI4OTksMjkwMCwyOTAxLDI5MDIsMjkwMywyODUyLDI4NTMsMjg1NCwyODU1LDI4NTYsMjg1NywwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwyODUyLDI4NTMsMjg1NCwyODU1LDI4NTYsMjg1NywyOTYwLDI5NjEsMjk2MiwyOTYzLDI5NjQsMjk2NSwyOTY2LDI5NjcsMjg1MiwyODUzLDI4NTQsMjg1NSwyODU2LDI4NTcsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMjg1MiwyODUzLDI4NTQsMjg1NSwyODU2LDI4NTcsMzAyNCwzMDI1LDMwMjYsMzAyNywzMDI4LDMwMjksMzAzMCwzMDMxLDI4NTIsMjg1MywyODU0LDI4NTUsMjg1NiwyODU3LDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDI4NTIsMjg1MywyODU0LDI4NTUsMjg1NiwyODU3LDMwODgsMzA4OSwzMDkwLDMwOTEsMzA5MiwzMDkzLDMwOTQsMzA5NSwyODUyLDI4NTMsMjg1NCwyODU1LDI4NTYsMjg1NywwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwyOTE2LDI5MTcsMjkxOCwyOTE5LDI5MjAsMjkyMSwzMTUyLDMxNTMsMzE1NCwzMTU1LDMxNTYsMzE1NywzMTU4LDMxNTksMjg1MiwyODUzLDI4NTQsMjg1NSwyODU2LDI4NTcsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMjk4MCwyOTgxLDI5ODIsMjk4MywyOTg0LDI5ODUsMzIxNiwzMjE3LDMyMTgsMzIxOSwzMjIwLDMyMjEsMzIyMiwzMjIzLDI5MTYsMjkxNywyOTE4LDI5MTksMjkyMCwyOTIxLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDMwNDQsMzA0NSwzMDQ2LDMwNDcsMzA0OCwzMDQ5LDIzODYsMjM4NywyMzg3LDIzODcsMjM4NywyMzg3LDIzODcsMjM4NywzMDE4LDMwMTksMzAyMCwzMDIxLDI5MjAsMzAyMywwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwzMTA4LDMxMDksMzExMCwzMTExLDMxMTIsMzExMywyNDUwLDI0NTEsMjQ1MSwyNDUxLDI0NTEsMjQ1MSwyNDUxLDI0NTEsMzA4MiwzMDgzLDMwODQsMzA4NSwyOTIwLDMwODcsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMzE3MiwzMTczLDMxNzQsMzE3NSwzMTc2LDMxNzcsMjUxNCwyNTE1LDI1MTUsMjUxNSwyNTE1LDI1MTUsMjUxNSwyNTE1LDMxNDYsMzE0NywzMTQ4LDMxNDksMjkyMCwzMTUxLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDMyMzYsMzIzNywzMjM4LDMyMzksMzI0MCwzMjQxLDI1NzgsMjU3OSwyNTc5LDI1NzksMjU3OSwyNTc5LDI1NzksMjU3OSwzMjEwLDMyMTEsMzIxMiwzMjEzLDMyMTQsMzIxNSwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwzMzAwLDMzMDEsMzI3NSwzMjc1LDMyNzUsMzI3NSwzMjc1LDMyNzUsMzI3NSwzMjc1LDMyNzUsMzI3NSwzMjc1LDMyNzUsMzI3NSwzMjc1LDMyNzYsMzI3NywzMjc4LDMyNzksMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMzM2NCwzMzY1LDMzNjYsMzM2NywzMzY4LDMzNjksMjcwNiwyNzA3LDI3MDcsMjcwNywyNzA3LDI3MDcsMjcwNywyNzA3LDMzMzgsMzMzOSwzMzQwLDMzNDEsMzM0MiwzMzQzLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwNCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsDQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLA0KMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMA0KPC9kYXRhPg0KIDwvbGF5ZXI+DQo8L21hcD4NCg"}];
 haxe_ds_ObjectMap.count = 0;
 haxe_MainLoop.add(hxd_System.updateCursor,-1);
 var hx__registerFont;

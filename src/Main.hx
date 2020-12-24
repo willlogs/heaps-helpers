@@ -1,10 +1,9 @@
-import eventbeacon.Beacon;
-import h2d.Tile;
+import hxd.Res;
 import hxd.Window;
-import h2d.Anim;
 import utils.*;
 import h2d.Font;
 import ecs.*;
+import level.*;
 
 class Main extends hxd.App {
     public var paused : Bool = false;
