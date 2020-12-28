@@ -1,6 +1,7 @@
 -cp src
 -lib heaps
 -lib eventbeacon
+-lib hlsdl
 -hl hello.hl
 -main Main
 -debug
