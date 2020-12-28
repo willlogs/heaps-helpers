@@ -21,6 +21,10 @@ class Main extends hxd.App {
         var tf = new h2d.Text(font);
         tf.text = "Hello World";
         s2d.addChild(tf);
+
+        var mainLevel : Level = new Level(Res.map1.entry, Res.cavestileset.toTile(), 8, 8);
+        mainLevel.preRender();
+        s2d = mainLevel.scene;
     }
 
     override function update(dt:Float) {
@@ -37,6 +41,7 @@ class Main extends hxd.App {
             case _:
         }
     }
+
     public function MouseMoveEvent(event : hxd.Event){
         //event.relX, event.relY
     }

@@ -5,10 +5,10 @@ import hxd.fs.FileEntry;
 import hxd.res.Resource;
 
 class Map extends Resource {
-    private var data : { layers: Array<{ data: Array<Int> }> };
+    public var mapData : { layers: Array<{ data: Array<Int> }>, height: Int, width: Int };
 
     public function new(entry:FileEntry) {
         super(entry);
-        data = Json.parse(entry.getText());
+        mapData = Json.parse(entry.getText());
     }
 }
