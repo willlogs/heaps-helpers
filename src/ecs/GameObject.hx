@@ -1,6 +1,6 @@
 package ecs;
 
-class GameObject{
+class GameObject extends Updatable{
     public var components = new List<ecs.Component>();
     public var scene : h2d.Scene;
     public var obj : h2d.Object;
@@ -47,7 +47,7 @@ class GameObject{
         return null;
     }
 
-    public function update(dt:Float){
+    public override function update(dt:Float):Void {
         for(item in components){
             item.update(dt);
         }

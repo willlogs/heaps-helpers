@@ -1,5 +1,6 @@
 package level;
 
+import ecs.Updatable;
 import h2d.Object;
 import h2d.Layers;
 import h2d.Bitmap;
@@ -7,7 +8,7 @@ import h2d.Tile;
 import hxd.fs.FileEntry;
 import h2d.Scene;
 
-class Level {
+class Level extends Updatable {
     public var levelMap : Map;
     public var scene : Scene;
     public var tileset : Array<Tile>;
@@ -73,6 +74,10 @@ class Level {
             layerNumber++;
         }
 
-        this.scene.setScale(2.5);
+        this.scene.setScale(7);
+    }
+
+    public override function update(dt:Float) {
+        return;
     }
 }

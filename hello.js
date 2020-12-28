@@ -356,7 +356,6 @@ haxe_ds_List.prototype = {
 	,__class__: haxe_ds_List
 };
 var Main = function() {
-	this.paused = false;
 	hxd_App.call(this);
 };
 $hxClasses["Main"] = Main;
@@ -372,20 +371,22 @@ Main.prototype = $extend(hxd_App.prototype,{
 		var font = hxd_res_DefaultFont.get();
 		var tf = new h2d_Text(font);
 		tf.set_text("Hello World");
-		this.s2d.addChild(tf);
 		var mainLevel = new level_Level(hxd_Res.get_loader().loadCache("map1.json",hxd_res_Resource).entry,hxd_Res.get_loader().loadCache("cavestileset.png",hxd_res_Image).toTile(),8,8);
 		mainLevel.preRender();
 		this.s2d = mainLevel.scene;
+		this.s2d.addChild(tf);
 	}
 	,update: function(dt) {
-		var _g_head = Main.UpdateList.h;
-		while(_g_head != null) {
-			var val = _g_head.item;
-			_g_head = _g_head.next;
-			var gameObject = val;
-			gameObject.update(dt);
+		if(!Main.Paused) {
+			var _g_head = Main.UpdateList.h;
+			while(_g_head != null) {
+				var val = _g_head.item;
+				_g_head = _g_head.next;
+				var gameObject = val;
+				gameObject.update(dt);
+			}
+			utils_ColliderSystem.CheckCollide();
 		}
-		utils_ColliderSystem.CheckCollide();
 	}
 	,OnEvent: function(event) {
 		switch(event.kind._hx_index) {
@@ -985,6 +986,15 @@ ecs_ColliderEvent.prototype = {
 	}
 	,__class__: ecs_ColliderEvent
 };
+var ecs_Updatable = function() { };
+$hxClasses["ecs.Updatable"] = ecs_Updatable;
+ecs_Updatable.__name__ = "ecs.Updatable";
+ecs_Updatable.prototype = {
+	update: function(dt) {
+		return;
+	}
+	,__class__: ecs_Updatable
+};
 var ecs_GameObject = function(scene,x,y,n,t) {
 	if(t == null) {
 		t = 0;
@@ -1019,7 +1029,8 @@ var ecs_GameObject = function(scene,x,y,n,t) {
 };
 $hxClasses["ecs.GameObject"] = ecs_GameObject;
 ecs_GameObject.__name__ = "ecs.GameObject";
-ecs_GameObject.prototype = {
+ecs_GameObject.__super__ = ecs_Updatable;
+ecs_GameObject.prototype = $extend(ecs_Updatable.prototype,{
 	AddComponent: function(c) {
 		haxe_Log.trace("adding a component",{ fileName : "src/ecs/GameObject.hx", lineNumber : 31, className : "ecs.GameObject", methodName : "AddComponent"});
 		this.components.add(c);
@@ -1048,7 +1059,7 @@ ecs_GameObject.prototype = {
 		}
 	}
 	,__class__: ecs_GameObject
-};
+});
 var ecs_RigidBody = function(attachee,abg) {
 	if(abg == null) {
 		abg = false;
@@ -60750,7 +60761,8 @@ var level_Level = function(mapEntry,tileset,tw,th) {
 };
 $hxClasses["level.Level"] = level_Level;
 level_Level.__name__ = "level.Level";
-level_Level.prototype = {
+level_Level.__super__ = ecs_Updatable;
+level_Level.prototype = $extend(ecs_Updatable.prototype,{
 	preRender: function() {
 		this.scene = new h2d_Scene();
 		var layerNumber = 0;
@@ -60798,12 +60810,15 @@ level_Level.prototype = {
 		}
 		var _this = this.scene;
 		_this.posChanged = true;
-		_this.scaleX = 2.5;
+		_this.scaleX = 7;
 		_this.posChanged = true;
-		_this.scaleY = 2.5;
+		_this.scaleY = 7;
+	}
+	,update: function(dt) {
+		return;
 	}
 	,__class__: level_Level
-};
+});
 var level_Map = function(entry) {
 	hxd_res_Resource.call(this,entry);
 	this.mapData = JSON.parse(entry.getText());
@@ -60932,6 +60947,7 @@ hx__registerFont = function(name,data) {
 };
 js_Boot.__toStr = ({ }).toString;
 Main.UpdateList = new haxe_ds_List();
+Main.Paused = false;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;

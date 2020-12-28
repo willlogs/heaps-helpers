@@ -6,8 +6,8 @@ import ecs.*;
 import level.*;
 
 class Main extends hxd.App {
-    public var paused : Bool = false;
-    public static var UpdateList = new List<GameObject>();
+    public static var UpdateList = new List<Updatable>();
+    public static var Paused : Bool = false;
 
     static function main() {
         new Main();
@@ -20,18 +20,21 @@ class Main extends hxd.App {
         var font : Font = hxd.res.DefaultFont.get();
         var tf = new h2d.Text(font);
         tf.text = "Hello World";
-        s2d.addChild(tf);
 
         var mainLevel : Level = new Level(Res.map1.entry, Res.cavestileset.toTile(), 8, 8);
         mainLevel.preRender();
         s2d = mainLevel.scene;
+
+        s2d.addChild(tf);
     }
 
     override function update(dt:Float) {
-        for(gameObject in UpdateList){
-            gameObject.update(dt);
+        if(!Paused){
+            for(gameObject in UpdateList){
+                gameObject.update(dt);
+            }
+            ColliderSystem.CheckCollide();
         }
-        ColliderSystem.CheckCollide();
     }
     
     public function OnEvent(event : hxd.Event){
