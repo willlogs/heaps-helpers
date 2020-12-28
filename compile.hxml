@@ -1,6 +1,6 @@
 -cp src
 -lib heaps
 -lib eventbeacon
--js hello.js
+-hl hello.hl
 -main Main
 -debug

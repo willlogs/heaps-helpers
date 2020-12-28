@@ -6,6 +6,7 @@ class GameObject extends Updatable{
     public var obj : h2d.Object;
     public var name : String;
     public var tag : Int;
+    public var children = new List<GameObject>();
 
     public function new(scene:h2d.Scene, x:Float = -1, y:Float = -1, n:String = "GO", t:Int = 0){
         trace("new game object created!");
@@ -25,6 +26,16 @@ class GameObject extends Updatable{
         tag = t;
 
         Main.UpdateList.add(this);
+    }
+
+    public function addChild(go: GameObject) {
+        obj.addChild(go.obj);
+        children.push(go);
+    }
+
+    public function removeChild(go: GameObject) {
+        obj.removeChild(go.obj);
+        children.remove(go);
     }
 
     public function AddComponent(c:ecs.Component){

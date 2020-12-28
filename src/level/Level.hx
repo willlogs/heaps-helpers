@@ -1,5 +1,11 @@
 package level;
 
+import haxe.Int64;
+import ecs.BoxCollider;
+import utils.Vector2;
+import ecs.Collider;
+import ecs.Component;
+import ecs.GameObject;
 import ecs.Updatable;
 import h2d.Object;
 import h2d.Layers;
@@ -12,6 +18,7 @@ class Level extends Updatable {
     public var levelMap : Map;
     public var scene : Scene;
     public var tileset : Array<Tile>;
+    public var collidersGO : GameObject;
 
     private var tw : Int;
     private var th : Int;
@@ -35,46 +42,11 @@ class Level extends Updatable {
 
     public function preRender() {
         this.scene = new Scene();
+        this.collidersGO = new GameObject(this.scene, 0, 0, "mapColliders");
 
-        var layerNumber : Int = 0;
+        
 
-        for(layer in levelMap.mapData.layers){
-
-            var tileIndex : Int = 0;
-            for(tile in layer.data){
-                if(tile == 0){
-                    tileIndex++;
-                    continue;
-                }
-
-                var horizontalFlip : Bool = tile & HORIZONTALFLIPFLAG != 0;
-                if(horizontalFlip)
-                    tile ^= HORIZONTALFLIPFLAG;
-
-                var verticalFlip : Bool = tile & VERTICALFLIPFLAG != 0;
-                if(verticalFlip)
-                    tile ^= VERTICALFLIPFLAG;
-
-                var antiDiagonalFlip : Bool = tile & ANTIDIAGONALFLIPFLAG != 0;
-                if(antiDiagonalFlip)
-                    tile ^= ANTIDIAGONALFLIPFLAG;
-
-                var bmp : Bitmap = new Bitmap(tileset[tile - 1]);
-                bmp.tile.dx = -bmp.tile.width/2;
-
-                if(horizontalFlip){
-                    bmp.scaleX = -1;
-                }
-
-                bmp.setPosition(Std.int(tileIndex % levelMap.mapData.width) * tw, Std.int(tileIndex / levelMap.mapData.height) * th);
-                scene.addChild(bmp);
-                
-                tileIndex++;
-            }
-            layerNumber++;
-        }
-
-        this.scene.setScale(7);
+        this.scene.setScale(2);
     }
 
     public override function update(dt:Float) {

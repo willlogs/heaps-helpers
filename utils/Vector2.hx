@@ -17,4 +17,12 @@ class Vector2{
     public function NeutralizeBy(v:Vector2){
         
     }
+
+    public static function sum(a:Vector2, b:Vector2):Vector2 {
+        return new Vector2(a.x + b.x, a.y + b.y);
+    }
+
+    public static function sub(a:Vector2, b:Vector2):Vector2 {
+        return new Vector2(a.x - b.x, a.y - b.y);
+    }
 }

@@ -17,7 +17,7 @@ class Collider extends Component{
         super(attachee);
         this.center = center;
         utils.ColliderSystem.collidersInScene.add(this);
-        rb = cast(attachee.GetComponent("RigidBody"), RigidBody);
+        //rb = cast(attachee.GetComponent("RigidBody"), RigidBody);
     }
 
     public function GetTop():Float{
@@ -65,6 +65,6 @@ class Collider extends Component{
     }
 
     private function ApplyPushBack(pv:Vector2) {
-        rb.velocity = new Vector2(-pv.x * pushOutSpeed, -pv.y * pushOutSpeed);
+        //rb.velocity = new Vector2(-pv.x * pushOutSpeed, -pv.y * pushOutSpeed);
     }
 }

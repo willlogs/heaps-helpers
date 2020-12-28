@@ -12,7 +12,6 @@ class ColliderSystem{
                     if(DoCollide(c1, c2)){
                         c1.AddCollided(c2);
                         c2.AddCollided(c1);
-                        trace("collided!");
                     }
                     else{
                         c1.RemoveCollided(c2);
@@ -31,11 +30,30 @@ class ColliderSystem{
                 return DoCollideC(cc1, cc2);
             }
         }
+
+        if(Std.is(c1, BoxCollider)){
+            var cc1:BoxCollider = cast(c1, BoxCollider);
+            if(Std.is(c2, BoxCollider)){
+                var cc2:BoxCollider = cast(c2, BoxCollider);
+                return DoCollideBox(cc1, cc2);
+            }
+        }
+
         return false;
     }
 
     public static function DoCollideC(c1:CircleCollider, c2:CircleCollider):Bool{
         return Distance(c1.GetCenter(), c2.GetCenter()) <= c1.radius * 0.5 + c2.radius * 0.5;
+    }
+
+    public static function DoCollideBox(c1: BoxCollider, c2: BoxCollider):Bool {
+        var xCollide : Bool = false;
+        var yCollide : Bool = false;
+
+        yCollide = DoIntersect(c1.GetTop(), c2.GetTop(), c1.GetBottom(), c2.GetBottom());
+        xCollide = DoIntersect(c1.GetRight(), c2.GetRight(), c1.GetLeft(), c2.GetLeft());
+
+        return xCollide && yCollide;
     }
 
     public static function Distance(v1:Vector2, v2:Vector2){
@@ -56,5 +74,9 @@ class ColliderSystem{
         c2c.y -= c1c.y;
 
         return c2c.Normalized();
+    }
+
+    private static function DoIntersect(upper1:Float, upper2:Float, lower1:Float, lower2:Float):Bool{
+        return (upper1 >= upper2 && lower1 <= upper2) || (upper2 >= upper1 && lower2 <= upper1);
     }
 }
