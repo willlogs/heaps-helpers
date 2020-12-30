@@ -9,7 +9,7 @@ class Map extends Resource {
     public var mapData : {
         layers: Array<{
             name: String,
-            data: Array<String>,
+            data: Array<UInt>,
             objects: Array<{
                 x: Float,
                 y: Float,

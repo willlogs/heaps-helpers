@@ -6,7 +6,7 @@ class BoxCollider extends Collider {
     public var width:Float;
     public var height:Float;
 
-    private static var debugMode : Bool = false;
+    private static var debugMode : Bool = true;
 
     public function new(attachee:GameObject, center:Vector2, width:Float, height:Float) {
         this.width = width;
@@ -16,7 +16,7 @@ class BoxCollider extends Collider {
         if(debugMode){
             var customGraphics = new h2d.Graphics(attachee.scene);
             customGraphics.beginFill(0xff0000, 0.3);
-            customGraphics.drawRect(attachee.obj.x - width/2, attachee.obj.y - height/2, width, height);
+            customGraphics.drawRect(attachee.obj.x + center.x - width/2, attachee.obj.y + center.y - height/2, width, height);
             customGraphics.endFill();
         }
     }

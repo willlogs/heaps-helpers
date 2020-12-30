@@ -48,17 +48,18 @@ class Level extends Updatable {
         var layerIndex : Int = 0;
         for (layer in this.levelMap.mapData.layers){
             if(layer.name == "colliders"){
-                trace("colliders");
+                for(obj in layer.objects){
+                    var colliderGO = new GameObject(this.scene, obj.x, obj.y, "colliderGO");
+                    var center : Vector2 = new Vector2(obj.width / 2, obj.height / 2);
+                    new BoxCollider(colliderGO, center, obj.width, obj.height);
+                }
             }
             else{
-                var tileIndex : Int = -1;
                 for (i in 0...layer.data.length){
-                    var tile : Int = Std.parseInt(layer.data[i]);
-                    tileIndex++;
-
-                    var horizontalFlip : Bool = HORIZONTALFLIPFLAG & tile > 0;
-                    var verticalFlip : Bool = VERTICALFLIPFLAG & tile > 0;
-                    var antiDiagonalFlip : Bool = ANTIDIAGONALFLIPFLAG & tile > 0;
+                    var tile : Int = layer.data[i];
+                    var horizontalFlip : Bool = HORIZONTALFLIPFLAG & tile != 0;
+                    var verticalFlip : Bool = VERTICALFLIPFLAG & tile != 0;
+                    var antiDiagonalFlip : Bool = ANTIDIAGONALFLIPFLAG & tile != 0;
 
                     if(horizontalFlip)
                         tile ^= HORIZONTALFLIPFLAG;
@@ -67,21 +68,21 @@ class Level extends Updatable {
                     if(antiDiagonalFlip)
                         tile ^= ANTIDIAGONALFLIPFLAG;
 
-                    if(tile == 0){
+                    if(layer.data[i] == 0){
                         continue;
                     }
 
                     var bmp : Bitmap = new Bitmap(tileset[tile - 1]);
-                    
-                    bmp.tile.dx -= bmp.tile.width / 2;
-                    bmp.tile.dy -= bmp.tile.height / 2;
+                                        
+                    bmp.tile.dx = -bmp.tile.width / 2;
+                    bmp.tile.dy = -bmp.tile.height / 2;
 
                     bmp.scaleX *= horizontalFlip ? -1 : 1;
                     bmp.scaleY *= verticalFlip ? -1 : 1;
 
                     bmp.setPosition(
-                        Std.int(tileIndex % this.levelMap.mapData.width) * levelMap.mapData.tilewidth,
-                        Std.int(tileIndex / this.levelMap.mapData.width) * levelMap.mapData.tileheight
+                        Std.int(i % this.levelMap.mapData.width) * levelMap.mapData.tilewidth + bmp.tile.width / 2,
+                        Std.int(i / this.levelMap.mapData.width) * levelMap.mapData.tileheight + bmp.tile.height / 2
                     );
                     this.scene.addChild(bmp);
                 }
