@@ -7,9 +7,10 @@ import eventbeacon.Beacon;
 
 class Collider extends Component{
     public var center:Vector2;
-    public var collidedWith = new List<Collider>();
-    public var pushOutSpeed : Float = 20;
+    public var collidedWith = new List<{collider: Collider, normal: Vector2}>();
+    public var pushOutSpeed : Float = 200;
     public var rb : RigidBody;
+    public var hasRb : Bool = false;
     public var isTrigger : Bool;
     public var colliderEvents : ColliderEvent = new ColliderEvent();
 
@@ -17,7 +18,12 @@ class Collider extends Component{
         super(attachee);
         this.center = center;
         utils.ColliderSystem.collidersInScene.add(this);
-        //rb = cast(attachee.GetComponent("RigidBody"), RigidBody);
+        var component = attachee.GetComponent("RigidBody");
+        
+        if(component != null){
+            rb = cast(component, RigidBody);
+            hasRb = true;
+        }
     }
 
     public function GetTop():Float{
@@ -40,31 +46,33 @@ class Collider extends Component{
         return new Vector2(center.x + attachee.obj.x, center.y + attachee.obj.y);
     }
 
-    public function AddCollided(c:Collider){
-        if(collidedWith.filter( function (cc) return cc == c).length == 0){
-            //enter
-            collidedWith.add(c);
+    public function AddCollided(c:Collider, normal:Vector2){
+        if(collidedWith.filter( function (cc) return cc.collider == c).length == 0){
+            // enter
+            collidedWith.add({collider: c, normal: normal});
             colliderEvents.call(c);
         }else{
-            //stay
+            // stay
         }
     }
 
     public function RemoveCollided(c:Collider){
-        //exit
-        collidedWith.remove(c);
+        // exit
+        collidedWith = collidedWith.filter(function (cc) return cc.collider != c);
     }
 
-    public override function update(dt:Float) {
+    public override function preUpdate(dt:Float) {
         if(!isTrigger) {
             for(c in collidedWith){
-                if(!c.isTrigger)
-                    ApplyPushBack(ColliderSystem.PushBackVector(this, c));
+                if(!c.collider.isTrigger)
+                    ApplyPushBack(c.normal);
             }
         }
     }
 
     private function ApplyPushBack(pv:Vector2) {
-        //rb.velocity = new Vector2(-pv.x * pushOutSpeed, -pv.y * pushOutSpeed);
+        if(hasRb){
+            rb.colliderNormals.add(pv);
+        }
     }
 }

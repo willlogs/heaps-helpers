@@ -9,6 +9,9 @@ class Main extends hxd.App {
     public static var UpdateList = new List<Updatable>();
     public static var Paused : Bool = false;
 
+    public static var DebugMode : Bool = true;
+    public static var customGraphics : h2d.Graphics;
+
     static function main() {
         new Main();
     }
@@ -26,14 +29,39 @@ class Main extends hxd.App {
         s2d = mainLevel.scene;
 
         s2d.addChild(tf);
+
+        if(DebugMode){            
+            customGraphics = new h2d.Graphics(s2d);
+        }
+
+        var testGO : GameObject = new GameObject(s2d, 20, 10);
+        new RigidBody(testGO, true);
+        new BoxCollider(testGO, new Vector2(0, 0), 10, 10);
     }
 
     override function update(dt:Float) {
+        if(DebugMode){            
+            customGraphics.clear();
+        }
+
         if(!Paused){
-            for(gameObject in UpdateList){
-                gameObject.update(dt);
-            }
+            // do physics checks first
             ColliderSystem.CheckCollide();
+
+            // pre update
+            for(updatable in UpdateList){
+                updatable.preUpdate(dt);
+            }
+
+            // update
+            for(updatable in UpdateList){
+                updatable.update(dt);
+            }
+
+            // after update
+            for(updatable in UpdateList){
+                updatable.afterUpdate(dt);
+            }
         }
     }
     

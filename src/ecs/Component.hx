@@ -10,7 +10,15 @@ class Component{
         attachee.AddComponent(this);
     }
 
+    public function preUpdate(dt:Float) {
+        
+    }
+
     public function update(dt:Float){
+        
+    }
+
+    public function afterUpdate(dt:Float) {
         
     }
 }

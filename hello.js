@@ -320,6 +320,11 @@ haxe_ds_List.prototype = {
 			return this.h.item;
 		}
 	}
+	,clear: function() {
+		this.h = null;
+		this.q = null;
+		this.length = 0;
+	}
 	,remove: function(v) {
 		var prev = null;
 		var l = this.h;
@@ -375,17 +380,40 @@ Main.prototype = $extend(hxd_App.prototype,{
 		mainLevel.preRender();
 		this.s2d = mainLevel.scene;
 		this.s2d.addChild(tf);
+		if(Main.DebugMode) {
+			Main.customGraphics = new h2d_Graphics(this.s2d);
+		}
+		var testGO = new ecs_GameObject(this.s2d,20,10);
+		new ecs_RigidBody(testGO,true);
+		new ecs_BoxCollider(testGO,new utils_Vector2(0,0),10,10);
 	}
 	,update: function(dt) {
+		if(Main.DebugMode) {
+			Main.customGraphics.clear();
+		}
 		if(!Main.Paused) {
+			utils_ColliderSystem.CheckCollide();
 			var _g_head = Main.UpdateList.h;
 			while(_g_head != null) {
 				var val = _g_head.item;
 				_g_head = _g_head.next;
-				var gameObject = val;
-				gameObject.update(dt);
+				var updatable = val;
+				updatable.preUpdate(dt);
 			}
-			utils_ColliderSystem.CheckCollide();
+			var _g1_head = Main.UpdateList.h;
+			while(_g1_head != null) {
+				var val = _g1_head.item;
+				_g1_head = _g1_head.next;
+				var updatable = val;
+				updatable.update(dt);
+			}
+			var _g2_head = Main.UpdateList.h;
+			while(_g2_head != null) {
+				var val = _g2_head.item;
+				_g2_head = _g2_head.next;
+				var updatable = val;
+				updatable.afterUpdate(dt);
+			}
 		}
 	}
 	,OnEvent: function(event) {
@@ -885,17 +913,27 @@ var ecs_Component = function(attachee_) {
 $hxClasses["ecs.Component"] = ecs_Component;
 ecs_Component.__name__ = "ecs.Component";
 ecs_Component.prototype = {
-	update: function(dt) {
+	preUpdate: function(dt) {
+	}
+	,update: function(dt) {
+	}
+	,afterUpdate: function(dt) {
 	}
 	,__class__: ecs_Component
 };
 var ecs_Collider = function(attachee,center) {
 	this.colliderEvents = new ecs_ColliderEvent();
-	this.pushOutSpeed = 20;
+	this.hasRb = false;
+	this.pushOutSpeed = 200;
 	this.collidedWith = new haxe_ds_List();
 	ecs_Component.call(this,attachee);
 	this.center = center;
 	utils_ColliderSystem.collidersInScene.add(this);
+	var component = attachee.GetComponent("RigidBody");
+	if(component != null) {
+		this.rb = js_Boot.__cast(component , ecs_RigidBody);
+		this.hasRb = true;
+	}
 };
 $hxClasses["ecs.Collider"] = ecs_Collider;
 ecs_Collider.__name__ = "ecs.Collider";
@@ -916,31 +954,36 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 	,GetCenter: function() {
 		return new utils_Vector2(this.center.x + this.attachee.obj.x,this.center.y + this.attachee.obj.y);
 	}
-	,AddCollided: function(c) {
+	,AddCollided: function(c,normal) {
 		if(this.collidedWith.filter(function(cc) {
-			return cc == c;
+			return cc.collider == c;
 		}).length == 0) {
-			this.collidedWith.add(c);
+			this.collidedWith.add({ collider : c, normal : normal});
 			this.colliderEvents.call(c);
 		}
 	}
 	,RemoveCollided: function(c) {
-		this.collidedWith.remove(c);
+		this.collidedWith = this.collidedWith.filter(function(cc) {
+			return cc.collider != c;
+		});
 	}
-	,update: function(dt) {
+	,preUpdate: function(dt) {
 		if(!this.isTrigger) {
 			var _g_head = this.collidedWith.h;
 			while(_g_head != null) {
 				var val = _g_head.item;
 				_g_head = _g_head.next;
 				var c = val;
-				if(!c.isTrigger) {
-					this.ApplyPushBack(utils_ColliderSystem.PushBackVector(this,c));
+				if(!c.collider.isTrigger) {
+					this.ApplyPushBack(c.normal);
 				}
 			}
 		}
 	}
 	,ApplyPushBack: function(pv) {
+		if(this.hasRb) {
+			this.rb.colliderNormals.add(pv);
+		}
 	}
 	,__class__: ecs_Collider
 });
@@ -948,12 +991,6 @@ var ecs_BoxCollider = function(attachee,center,width,height) {
 	this.width = width;
 	this.height = height;
 	ecs_Collider.call(this,attachee,center);
-	if(ecs_BoxCollider.debugMode) {
-		var customGraphics = new h2d_Graphics(attachee.scene);
-		customGraphics.beginFill(16711680,0.3);
-		customGraphics.drawRect(attachee.obj.x + center.x - width / 2,attachee.obj.y + center.y - height / 2,width,height);
-		customGraphics.endFill();
-	}
 };
 $hxClasses["ecs.BoxCollider"] = ecs_BoxCollider;
 ecs_BoxCollider.__name__ = "ecs.BoxCollider";
@@ -973,6 +1010,14 @@ ecs_BoxCollider.prototype = $extend(ecs_Collider.prototype,{
 	}
 	,GetCenter: function() {
 		return utils_Vector2.sum(ecs_Collider.prototype.GetCenter.call(this),new utils_Vector2(0,0));
+	}
+	,update: function(dt) {
+		ecs_Collider.prototype.update.call(this,dt);
+		if(Main.DebugMode) {
+			Main.customGraphics.beginFill(16711680,0.3);
+			Main.customGraphics.drawRect(this.attachee.obj.x + this.center.x - this.width / 2,this.attachee.obj.y + this.center.y - this.height / 2,this.width,this.height);
+			Main.customGraphics.endFill();
+		}
 	}
 	,__class__: ecs_BoxCollider
 });
@@ -1021,6 +1066,12 @@ $hxClasses["ecs.Updatable"] = ecs_Updatable;
 ecs_Updatable.__name__ = "ecs.Updatable";
 ecs_Updatable.prototype = {
 	update: function(dt) {
+		return;
+	}
+	,preUpdate: function(dt) {
+		return;
+	}
+	,afterUpdate: function(dt) {
 		return;
 	}
 	,__class__: ecs_Updatable
@@ -1088,6 +1139,15 @@ ecs_GameObject.prototype = $extend(ecs_Updatable.prototype,{
 		}
 		return null;
 	}
+	,preUpdate: function(dt) {
+		var _g_head = this.components.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var item = val;
+			item.preUpdate(dt);
+		}
+	}
 	,update: function(dt) {
 		var _g_head = this.components.h;
 		while(_g_head != null) {
@@ -1097,24 +1157,43 @@ ecs_GameObject.prototype = $extend(ecs_Updatable.prototype,{
 			item.update(dt);
 		}
 	}
+	,afterUpdate: function(dt) {
+		var _g_head = this.components.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var item = val;
+			item.afterUpdate(dt);
+		}
+	}
 	,__class__: ecs_GameObject
 });
-var ecs_RigidBody = function(attachee,abg) {
-	if(abg == null) {
-		abg = false;
+var ecs_RigidBody = function(attachee,affectedByGravity) {
+	if(affectedByGravity == null) {
+		affectedByGravity = false;
 	}
+	this.colliderNormals = new haxe_ds_List();
 	ecs_Component.call(this,attachee);
 	this.type = "RigidBody";
 	this.velocity = new utils_Vector2();
 	this.gravity = new utils_Vector2();
 	this.gravity.y = 1000;
-	this.affectedByGravity = abg;
+	this.affectedByGravity = affectedByGravity;
 };
 $hxClasses["ecs.RigidBody"] = ecs_RigidBody;
 ecs_RigidBody.__name__ = "ecs.RigidBody";
 ecs_RigidBody.__super__ = ecs_Component;
 ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 	update: function(dt) {
+		var _g_head = this.colliderNormals.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var normal = val;
+			this.velocity.NeutralizeBy(normal);
+			haxe_Log.trace(this.velocity,{ fileName : "src/ecs/RigidBody.hx", lineNumber : 27, className : "ecs.RigidBody", methodName : "update"});
+		}
+		this.colliderNormals.clear();
 		var _g = this.attachee.obj;
 		_g.posChanged = true;
 		_g.x += this.velocity.x * dt;
@@ -63797,6 +63876,9 @@ utils_ColliderSystem.CheckCollide = function() {
 		var val = _g_head.item;
 		_g_head = _g_head.next;
 		var c1 = val;
+		if(!c1.hasRb) {
+			continue;
+		}
 		var _g_head1 = utils_ColliderSystem.collidersInScene.h;
 		while(_g_head1 != null) {
 			var val1 = _g_head1.item;
@@ -63804,8 +63886,8 @@ utils_ColliderSystem.CheckCollide = function() {
 			var c2 = val1;
 			if(c1 != c2) {
 				if(utils_ColliderSystem.DoCollide(c1,c2)) {
-					c1.AddCollided(c2);
-					c2.AddCollided(c1);
+					c1.AddCollided(c2,utils_ColliderSystem.c2Normal);
+					c2.AddCollided(c1,utils_ColliderSystem.c1Normal);
 				} else {
 					c1.RemoveCollided(c2);
 					c2.RemoveCollided(c1);
@@ -63832,15 +63914,27 @@ utils_ColliderSystem.DoCollide = function(c1,c2) {
 	return false;
 };
 utils_ColliderSystem.DoCollideC = function(c1,c2) {
-	return utils_ColliderSystem.Distance(c1.GetCenter(),c2.GetCenter()) <= c1.radius * 0.5 + c2.radius * 0.5;
+	var center1 = c1.GetCenter();
+	var center2 = c2.GetCenter();
+	if(utils_ColliderSystem.Distance(center1,center2) <= c1.radius * 0.5 + c2.radius * 0.5) {
+		utils_ColliderSystem.c1Normal = new utils_Vector2(center1.x - center2.x,center1.y - center2.y).Normalized();
+		utils_ColliderSystem.c2Normal = new utils_Vector2(center2.x - center1.x,center2.y - center1.y).Normalized();
+		return true;
+	} else {
+		return false;
+	}
 };
 utils_ColliderSystem.DoCollideBox = function(c1,c2) {
 	var xCollide = false;
 	var yCollide = false;
 	yCollide = utils_ColliderSystem.DoIntersect(c1.GetTop(),c2.GetTop(),c1.GetBottom(),c2.GetBottom());
 	xCollide = utils_ColliderSystem.DoIntersect(c1.GetRight(),c2.GetRight(),c1.GetLeft(),c2.GetLeft());
-	if(xCollide) {
-		return yCollide;
+	var center1 = c1.GetCenter();
+	var center2 = c2.GetCenter();
+	if(xCollide && yCollide) {
+		utils_ColliderSystem.c1Normal = new utils_Vector2(center1.x - center2.x,center1.y - center2.y).Normalized();
+		utils_ColliderSystem.c2Normal = new utils_Vector2(center2.x - center1.x,center2.y - center1.y).Normalized();
+		return true;
 	} else {
 		return false;
 	}
@@ -63851,13 +63945,6 @@ utils_ColliderSystem.Distance = function(v1,v2) {
 	x *= x;
 	y *= y;
 	return Math.sqrt(x + y);
-};
-utils_ColliderSystem.PushBackVector = function(c1,c2) {
-	var c2c = c2.GetCenter();
-	var c1c = c1.GetCenter();
-	c2c.x -= c1c.x;
-	c2c.y -= c1c.y;
-	return c2c.Normalized();
 };
 utils_ColliderSystem.DoIntersect = function(upper1,upper2,lower1,lower2) {
 	if(!(upper1 >= upper2 && lower1 <= upper2)) {
@@ -63888,12 +63975,29 @@ utils_Vector2.sum = function(a,b) {
 utils_Vector2.sub = function(a,b) {
 	return new utils_Vector2(a.x - b.x,a.y - b.y);
 };
+utils_Vector2.multiply = function(a,b) {
+	return new utils_Vector2(a.x * b,a.y * b);
+};
 utils_Vector2.prototype = {
 	Normalized: function() {
-		var abs = Math.sqrt(this.x * this.x + this.y * this.y);
+		var abs = this.Magnitude();
 		return new utils_Vector2(this.x / abs,this.y / abs);
 	}
 	,NeutralizeBy: function(v) {
+		var normalV = v.Normalized();
+		var m = utils_Vector2.multiply(normalV,this.Dot(normalV));
+		this.x -= m.x;
+		this.y -= m.y;
+	}
+	,Dot: function(v) {
+		return this.x * v.x + this.y * v.y;
+	}
+	,Magnitude: function() {
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+	,Multiply: function(m) {
+		this.x *= m;
+		this.y *= m;
 	}
 	,__class__: utils_Vector2
 };
@@ -63941,6 +64045,7 @@ hx__registerFont = function(name,data) {
 js_Boot.__toStr = ({ }).toString;
 Main.UpdateList = new haxe_ds_List();
 Main.Paused = false;
+Main.DebugMode = true;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;
@@ -63948,7 +64053,6 @@ Xml.Comment = 3;
 Xml.DocType = 4;
 Xml.ProcessingInstruction = 5;
 Xml.Document = 6;
-ecs_BoxCollider.debugMode = true;
 format_gif_Tools.LN2 = Math.log(2);
 format_mp3_MPEG.V1 = 3;
 format_mp3_MPEG.V2 = 2;

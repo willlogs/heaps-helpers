@@ -58,9 +58,21 @@ class GameObject extends Updatable{
         return null;
     }
 
+    public override function preUpdate(dt:Float):Void {
+        for(item in components){
+            item.preUpdate(dt);
+        }
+    }
+
     public override function update(dt:Float):Void {
         for(item in components){
             item.update(dt);
+        }
+    }
+
+    public override function afterUpdate(dt:Float):Void {
+        for(item in components){
+            item.afterUpdate(dt);
         }
     }
 }

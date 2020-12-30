@@ -7,8 +7,9 @@ class RigidBody extends ecs.Component{
     public var velocityOffset:Vector2;
     public var gravity:Vector2;
     public var affectedByGravity:Bool;
+    public var colliderNormals : List<Vector2> = new List<Vector2>();
 
-    public function new(attachee:ecs.GameObject, abg:Bool = false){
+    public function new(attachee:ecs.GameObject, affectedByGravity:Bool = false){
         super(attachee);
 
         type = "RigidBody";
@@ -17,12 +18,19 @@ class RigidBody extends ecs.Component{
         gravity = new Vector2();
         gravity.y = 10 * 100;
 
-        affectedByGravity = abg;
+        this.affectedByGravity = affectedByGravity;
     }
 
     public override function update(dt:Float) {
+        for(normal in colliderNormals){
+            velocity.NeutralizeBy(normal);
+            trace(velocity);
+        }
+        colliderNormals.clear();
+
         attachee.obj.x += velocity.x * dt;
         attachee.obj.y += velocity.y * dt;
+
         if(affectedByGravity) {
             velocity.x += gravity.x * dt;
             velocity.y += gravity.y * dt;
