@@ -1,5 +1,6 @@
 package level;
 
+import format.mp3.Data.Layer;
 import haxe.Int64;
 import ecs.BoxCollider;
 import utils.Vector2;
@@ -44,7 +45,49 @@ class Level extends Updatable {
         this.scene = new Scene();
         this.collidersGO = new GameObject(this.scene, 0, 0, "mapColliders");
 
-        
+        var layerIndex : Int = 0;
+        for (layer in this.levelMap.mapData.layers){
+            if(layer.name == "colliders"){
+                trace("colliders");
+            }
+            else{
+                var tileIndex : Int = -1;
+                for (i in 0...layer.data.length){
+                    var tile : Int = Std.parseInt(layer.data[i]);
+                    tileIndex++;
+
+                    var horizontalFlip : Bool = HORIZONTALFLIPFLAG & tile > 0;
+                    var verticalFlip : Bool = VERTICALFLIPFLAG & tile > 0;
+                    var antiDiagonalFlip : Bool = ANTIDIAGONALFLIPFLAG & tile > 0;
+
+                    if(horizontalFlip)
+                        tile ^= HORIZONTALFLIPFLAG;
+                    if(verticalFlip)
+                        tile ^= VERTICALFLIPFLAG;
+                    if(antiDiagonalFlip)
+                        tile ^= ANTIDIAGONALFLIPFLAG;
+
+                    if(tile == 0){
+                        continue;
+                    }
+
+                    var bmp : Bitmap = new Bitmap(tileset[tile - 1]);
+                    
+                    bmp.tile.dx -= bmp.tile.width / 2;
+                    bmp.tile.dy -= bmp.tile.height / 2;
+
+                    bmp.scaleX *= horizontalFlip ? -1 : 1;
+                    bmp.scaleY *= verticalFlip ? -1 : 1;
+
+                    bmp.setPosition(
+                        Std.int(tileIndex % this.levelMap.mapData.width) * levelMap.mapData.tilewidth,
+                        Std.int(tileIndex / this.levelMap.mapData.width) * levelMap.mapData.tileheight
+                    );
+                    this.scene.addChild(bmp);
+                }
+                layerIndex++;
+            }
+        }
 
         this.scene.setScale(2);
     }
