@@ -73,7 +73,7 @@ class Collider extends Component{
     }
 
     private function ApplyPushBack(pv:Vector2) {
-        if(hasRb){
+        if(hasRb && !rb.isTrigger){
             rb.colliderNormals.add(pv);
         }
     }

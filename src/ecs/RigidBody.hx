@@ -7,9 +7,10 @@ class RigidBody extends ecs.Component{
     public var velocityOffset:Vector2;
     public var gravity:Vector2;
     public var affectedByGravity:Bool;
+    public var isTrigger:Bool = false;
     public var colliderNormals : List<Vector2> = new List<Vector2>();
 
-    public function new(attachee:ecs.GameObject, affectedByGravity:Bool = false){
+    public function new(attachee:ecs.GameObject, affectedByGravity:Bool = false, isTrigger:Bool = false){
         super(attachee);
 
         type = "RigidBody";
@@ -19,6 +20,7 @@ class RigidBody extends ecs.Component{
         gravity.y = 10 * 100;
 
         this.affectedByGravity = affectedByGravity;
+        this.isTrigger = isTrigger;
     }
 
     public override function update(dt:Float) {
