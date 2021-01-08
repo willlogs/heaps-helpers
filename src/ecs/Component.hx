@@ -1,6 +1,6 @@
 package ecs;
 
-class Component{
+class Component {
     public var attachee : GameObject;
     public var scene : h2d.Scene;
     public var type:String = "Component";
@@ -19,6 +19,10 @@ class Component{
     }
 
     public function afterUpdate(dt:Float) {
+        
+    }
+
+    public function fixedUpdate() {
         
     }
 }

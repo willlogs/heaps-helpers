@@ -75,4 +75,10 @@ class GameObject extends Updatable{
             item.afterUpdate(dt);
         }
     }
+
+    public override function fixedUpdate():Void {
+        for(item in components){
+            item.fixedUpdate();
+        }
+    }
 }

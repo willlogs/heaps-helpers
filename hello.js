@@ -373,6 +373,8 @@ Main.prototype = $extend(hxd_App.prototype,{
 	init: function() {
 		hxd_Res.set_loader(new hxd_res_Loader(new hxd_fs_EmbedFileSystem(haxe_Unserializer.run("oy9:map1.jsonty16:cavestileset.pngtg"))));
 		hxd_Window.getInstance().addEventTarget($bind(this,this.OnEvent));
+		Main.fixedTimer = new ecs_FixedTimer(Main.fixedDeltaTime * 1000 | 0);
+		Main.fixedTimer.hooks.add($bind(this,this.fixedUpdate));
 		var font = hxd_res_DefaultFont.get();
 		var tf = new h2d_Text(font);
 		tf.set_text("Hello World");
@@ -392,7 +394,6 @@ Main.prototype = $extend(hxd_App.prototype,{
 			Main.customGraphics.clear();
 		}
 		if(!Main.Paused) {
-			utils_ColliderSystem.CheckCollide();
 			var _g_head = Main.UpdateList.h;
 			while(_g_head != null) {
 				var val = _g_head.item;
@@ -413,6 +414,18 @@ Main.prototype = $extend(hxd_App.prototype,{
 				_g2_head = _g2_head.next;
 				var updatable = val;
 				updatable.afterUpdate(dt);
+			}
+		}
+	}
+	,fixedUpdate: function() {
+		if(!Main.Paused) {
+			utils_ColliderSystem.CheckCollide();
+			var _g_head = Main.UpdateList.h;
+			while(_g_head != null) {
+				var val = _g_head.item;
+				_g_head = _g_head.next;
+				var updatable = val;
+				updatable.fixedUpdate();
 			}
 		}
 	}
@@ -919,6 +932,8 @@ ecs_Component.prototype = {
 	}
 	,afterUpdate: function(dt) {
 	}
+	,fixedUpdate: function() {
+	}
 	,__class__: ecs_Component
 };
 var ecs_Collider = function(attachee,center,staticity) {
@@ -926,10 +941,12 @@ var ecs_Collider = function(attachee,center,staticity) {
 		staticity = false;
 	}
 	this.colliderEvents = new ecs_ColliderEvent();
-	this.isStatic = false;
-	this.hasRb = false;
-	this.pushOutSpeed = 200;
 	this.collidedWith = new haxe_ds_List();
+	this.isStatic = false;
+	this.isTrigger = false;
+	this.hasRb = false;
+	this.errTolerance = 2;
+	this.pushOutSpeed = 200;
 	ecs_Component.call(this,attachee);
 	this.center = center;
 	this.isStatic = staticity;
@@ -972,7 +989,7 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 			return cc.collider != c;
 		});
 	}
-	,preUpdate: function(dt) {
+	,fixedUpdate: function() {
 		if(!this.isTrigger) {
 			var _g_head = this.collidedWith.h;
 			while(_g_head != null) {
@@ -986,7 +1003,7 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 		}
 	}
 	,ApplyPushBack: function(pv) {
-		if(this.hasRb) {
+		if(this.hasRb && !this.rb.isTrigger) {
 			this.rb.colliderNormals.add(pv);
 		}
 	}
@@ -1094,6 +1111,53 @@ ecs_Edge.__name__ = "ecs.Edge";
 ecs_Edge.prototype = {
 	__class__: ecs_Edge
 };
+var haxe_Timer = function(time_ms) {
+	var me = this;
+	this.id = setInterval(function() {
+		me.run();
+	},time_ms);
+};
+$hxClasses["haxe.Timer"] = haxe_Timer;
+haxe_Timer.__name__ = "haxe.Timer";
+haxe_Timer.delay = function(f,time_ms) {
+	var t = new haxe_Timer(time_ms);
+	t.run = function() {
+		t.stop();
+		f();
+	};
+	return t;
+};
+haxe_Timer.prototype = {
+	stop: function() {
+		if(this.id == null) {
+			return;
+		}
+		clearInterval(this.id);
+		this.id = null;
+	}
+	,run: function() {
+	}
+	,__class__: haxe_Timer
+};
+var ecs_FixedTimer = function(time) {
+	haxe_Timer.call(this,time);
+	this.hooks = new haxe_ds_List();
+};
+$hxClasses["ecs.FixedTimer"] = ecs_FixedTimer;
+ecs_FixedTimer.__name__ = "ecs.FixedTimer";
+ecs_FixedTimer.__super__ = haxe_Timer;
+ecs_FixedTimer.prototype = $extend(haxe_Timer.prototype,{
+	run: function() {
+		var _g_head = this.hooks.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var func = val;
+			func();
+		}
+	}
+	,__class__: ecs_FixedTimer
+});
 var ecs_Updatable = function() { };
 $hxClasses["ecs.Updatable"] = ecs_Updatable;
 ecs_Updatable.__name__ = "ecs.Updatable";
@@ -1105,6 +1169,9 @@ ecs_Updatable.prototype = {
 		return;
 	}
 	,afterUpdate: function(dt) {
+		return;
+	}
+	,fixedUpdate: function() {
 		return;
 	}
 	,__class__: ecs_Updatable
@@ -1199,25 +1266,40 @@ ecs_GameObject.prototype = $extend(ecs_Updatable.prototype,{
 			item.afterUpdate(dt);
 		}
 	}
+	,fixedUpdate: function() {
+		var _g_head = this.components.h;
+		while(_g_head != null) {
+			var val = _g_head.item;
+			_g_head = _g_head.next;
+			var item = val;
+			item.fixedUpdate();
+		}
+	}
 	,__class__: ecs_GameObject
 });
-var ecs_RigidBody = function(attachee,affectedByGravity) {
+var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
+	if(isTrigger == null) {
+		isTrigger = false;
+	}
 	if(affectedByGravity == null) {
 		affectedByGravity = false;
 	}
 	this.colliderNormals = new haxe_ds_List();
+	this.isTrigger = false;
 	ecs_Component.call(this,attachee);
 	this.type = "RigidBody";
-	this.velocity = new utils_Vector2();
+	this.velocity = new utils_Vector2(40,0);
 	this.gravity = new utils_Vector2();
-	this.gravity.y = 1000;
+	this.gravity.y = 2000;
 	this.affectedByGravity = affectedByGravity;
+	this.isTrigger = isTrigger;
 };
 $hxClasses["ecs.RigidBody"] = ecs_RigidBody;
 ecs_RigidBody.__name__ = "ecs.RigidBody";
 ecs_RigidBody.__super__ = ecs_Component;
 ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
-	update: function(dt) {
+	fixedUpdate: function() {
+		var dt = Main.fixedDeltaTime;
 		var _g_head = this.colliderNormals.h;
 		while(_g_head != null) {
 			var val = _g_head.item;
@@ -38862,34 +38944,6 @@ haxe_Resource.getBytes = function(name) {
 	}
 	return null;
 };
-var haxe_Timer = function(time_ms) {
-	var me = this;
-	this.id = setInterval(function() {
-		me.run();
-	},time_ms);
-};
-$hxClasses["haxe.Timer"] = haxe_Timer;
-haxe_Timer.__name__ = "haxe.Timer";
-haxe_Timer.delay = function(f,time_ms) {
-	var t = new haxe_Timer(time_ms);
-	t.run = function() {
-		t.stop();
-		f();
-	};
-	return t;
-};
-haxe_Timer.prototype = {
-	stop: function() {
-		if(this.id == null) {
-			return;
-		}
-		clearInterval(this.id);
-		this.id = null;
-	}
-	,run: function() {
-	}
-	,__class__: haxe_Timer
-};
 var haxe__$Unserializer_DefaultResolver = function() {
 };
 $hxClasses["haxe._Unserializer.DefaultResolver"] = haxe__$Unserializer_DefaultResolver;
@@ -64153,6 +64207,8 @@ js_Boot.__toStr = ({ }).toString;
 Main.UpdateList = new haxe_ds_List();
 Main.Paused = false;
 Main.DebugMode = true;
+Main.timeScale = 1;
+Main.fixedDeltaTime = 0.001;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;

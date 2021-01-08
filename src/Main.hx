@@ -1,3 +1,4 @@
+import haxe.Timer;
 import hxd.Res;
 import hxd.Window;
 import utils.*;
@@ -12,6 +13,10 @@ class Main extends hxd.App {
     public static var DebugMode : Bool = true;
     public static var customGraphics : h2d.Graphics;
 
+    public static var timeScale : Float = 1;
+    public static var fixedDeltaTime : Float = 0.001;
+    public static var fixedTimer : FixedTimer;
+
     static function main() {
         new Main();
     }
@@ -19,6 +24,8 @@ class Main extends hxd.App {
     override function init() {
         hxd.Res.initEmbed();
         Window.getInstance().addEventTarget(OnEvent);
+        fixedTimer = new FixedTimer(Std.int(fixedDeltaTime * 1000));
+        fixedTimer.hooks.add(this.fixedUpdate);
 
         var font : Font = hxd.res.DefaultFont.get();
         var tf = new h2d.Text(font);
@@ -46,8 +53,6 @@ class Main extends hxd.App {
 
         if(!Paused){
             // do physics checks first
-            ColliderSystem.CheckCollide();
-
             // pre update
             for(updatable in UpdateList){
                 updatable.preUpdate(dt);
@@ -61,6 +66,16 @@ class Main extends hxd.App {
             // after update
             for(updatable in UpdateList){
                 updatable.afterUpdate(dt);
+            }
+        }
+    }
+
+    public function fixedUpdate() {
+        if(!Paused){
+            ColliderSystem.CheckCollide();
+
+            for(updatable in UpdateList){
+                updatable.fixedUpdate();
             }
         }
     }

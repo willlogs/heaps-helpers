@@ -6,13 +6,16 @@ import utils.Vector2;
 import eventbeacon.Beacon;
 
 class Collider extends Component{
+    public var pushOutSpeed : Float = 200;
+    public var errTolerance : Float = 2;
+    
+    public var hasRb : Bool = false;
+    public var isTrigger : Bool = false;
+    public var isStatic : Bool = false;
+
     public var center:Vector2;
     public var collidedWith = new List<{collider: Collider, normal: Vector2}>();
-    public var pushOutSpeed : Float = 200;
     public var rb : RigidBody;
-    public var hasRb : Bool = false;
-    public var isTrigger : Bool;
-    public var isStatic : Bool = false;
     public var colliderEvents : ColliderEvent = new ColliderEvent();
 
     public function new(attachee:GameObject, center:Vector2, staticity:Bool = false){
@@ -63,7 +66,7 @@ class Collider extends Component{
         collidedWith = collidedWith.filter(function (cc) return cc.collider != c);
     }
 
-    public override function preUpdate(dt:Float) {
+    public override function fixedUpdate() {
         if(!isTrigger) {
             for(c in collidedWith){
                 if(!c.collider.isTrigger)

@@ -15,15 +15,16 @@ class RigidBody extends ecs.Component{
 
         type = "RigidBody";
 
-        velocity = new Vector2();
+        velocity = new Vector2(40, 0);
         gravity = new Vector2();
-        gravity.y = 10 * 100;
+        gravity.y = 20 * 100;
 
         this.affectedByGravity = affectedByGravity;
         this.isTrigger = isTrigger;
     }
 
-    public override function update(dt:Float) {
+    public override function fixedUpdate() {
+        var dt = Main.fixedDeltaTime;
         for(normal in colliderNormals){
             velocity.NeutralizeBy(normal);
         }

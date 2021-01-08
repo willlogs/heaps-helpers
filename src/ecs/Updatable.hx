@@ -10,4 +10,7 @@ class Updatable {
     public function afterUpdate(dt:Float):Void {
         return;
     }
+    public function fixedUpdate():Void {
+        return;
+    }
 }
