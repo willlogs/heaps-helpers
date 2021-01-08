@@ -921,13 +921,18 @@ ecs_Component.prototype = {
 	}
 	,__class__: ecs_Component
 };
-var ecs_Collider = function(attachee,center) {
+var ecs_Collider = function(attachee,center,staticity) {
+	if(staticity == null) {
+		staticity = false;
+	}
 	this.colliderEvents = new ecs_ColliderEvent();
+	this.isStatic = false;
 	this.hasRb = false;
 	this.pushOutSpeed = 200;
 	this.collidedWith = new haxe_ds_List();
 	ecs_Component.call(this,attachee);
 	this.center = center;
+	this.isStatic = staticity;
 	utils_ColliderSystem.collidersInScene.add(this);
 	var component = attachee.GetComponent("RigidBody");
 	if(component != null) {
@@ -987,20 +992,25 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 	}
 	,__class__: ecs_Collider
 });
-var ecs_BoxCollider = function(attachee,center,width,height) {
+var ecs_BoxCollider = function(attachee,center,width,height,staticity) {
+	if(staticity == null) {
+		staticity = false;
+	}
+	this.edges = new haxe_ds_List();
 	this.width = width;
 	this.height = height;
-	ecs_Collider.call(this,attachee,center);
+	ecs_Collider.call(this,attachee,center,staticity);
+	this.updateEdges();
 };
 $hxClasses["ecs.BoxCollider"] = ecs_BoxCollider;
 ecs_BoxCollider.__name__ = "ecs.BoxCollider";
 ecs_BoxCollider.__super__ = ecs_Collider;
 ecs_BoxCollider.prototype = $extend(ecs_Collider.prototype,{
 	GetTop: function() {
-		return this.center.y + this.height / 2 + this.attachee.obj.y;
+		return this.center.y - this.height / 2 + this.attachee.obj.y;
 	}
 	,GetBottom: function() {
-		return this.center.y - this.height / 2 + this.attachee.obj.y;
+		return this.center.y + this.height / 2 + this.attachee.obj.y;
 	}
 	,GetLeft: function() {
 		return this.center.x - this.width / 2 + this.attachee.obj.x;
@@ -1018,6 +1028,18 @@ ecs_BoxCollider.prototype = $extend(ecs_Collider.prototype,{
 			Main.customGraphics.drawRect(this.attachee.obj.x + this.center.x - this.width / 2,this.attachee.obj.y + this.center.y - this.height / 2,this.width,this.height);
 			Main.customGraphics.endFill();
 		}
+	}
+	,updateEdges: function() {
+		this.edges.clear();
+		var center = this.GetCenter();
+		var left = this.GetLeft();
+		var right = this.GetLeft();
+		var top = this.GetLeft();
+		var bottom = this.GetLeft();
+		this.edges.push(new ecs_Edge(utils_Vector2.sum(center,new utils_Vector2(this.width,0)),new utils_Vector2(1,0),new utils_Vector2(right,top),new utils_Vector2(right,bottom)));
+		this.edges.push(new ecs_Edge(utils_Vector2.sum(center,new utils_Vector2(-this.width,0)),new utils_Vector2(1,0),new utils_Vector2(left,top),new utils_Vector2(left,bottom)));
+		this.edges.push(new ecs_Edge(utils_Vector2.sum(center,new utils_Vector2(0,this.height)),new utils_Vector2(1,0),new utils_Vector2(left,bottom),new utils_Vector2(right,bottom)));
+		this.edges.push(new ecs_Edge(utils_Vector2.sum(center,new utils_Vector2(0,-this.height)),new utils_Vector2(1,0),new utils_Vector2(left,top),new utils_Vector2(right,top)));
 	}
 	,__class__: ecs_BoxCollider
 });
@@ -1060,6 +1082,17 @@ ecs_ColliderEvent.prototype = {
 		}
 	}
 	,__class__: ecs_ColliderEvent
+};
+var ecs_Edge = function(center,normal,p1,p2) {
+	this.center = center;
+	this.normal = normal;
+	this.p1 = p1;
+	this.p2 = p2;
+};
+$hxClasses["ecs.Edge"] = ecs_Edge;
+ecs_Edge.__name__ = "ecs.Edge";
+ecs_Edge.prototype = {
+	__class__: ecs_Edge
 };
 var ecs_Updatable = function() { };
 $hxClasses["ecs.Updatable"] = ecs_Updatable;
@@ -1191,7 +1224,6 @@ ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 			_g_head = _g_head.next;
 			var normal = val;
 			this.velocity.NeutralizeBy(normal);
-			haxe_Log.trace(this.velocity,{ fileName : "src/ecs/RigidBody.hx", lineNumber : 27, className : "ecs.RigidBody", methodName : "update"});
 		}
 		this.colliderNormals.clear();
 		var _g = this.attachee.obj;
@@ -63805,7 +63837,7 @@ level_Level.prototype = $extend(ecs_Updatable.prototype,{
 					++_g2;
 					var colliderGO = new ecs_GameObject(this.scene,obj.x,obj.y,"colliderGO");
 					var center = new utils_Vector2(obj.width / 2,obj.height / 2);
-					new ecs_BoxCollider(colliderGO,center,obj.width,obj.height);
+					new ecs_BoxCollider(colliderGO,center,obj.width,obj.height,true);
 				}
 			} else {
 				var _g4 = 0;
@@ -63897,23 +63929,26 @@ utils_ColliderSystem.CheckCollide = function() {
 	}
 };
 utils_ColliderSystem.DoCollide = function(c1,c2) {
+	if(c1.isStatic && c2.isStatic) {
+		return false;
+	}
 	if(((c1) instanceof ecs_CircleCollider)) {
 		var cc1 = js_Boot.__cast(c1 , ecs_CircleCollider);
 		if(((c2) instanceof ecs_CircleCollider)) {
 			var cc2 = js_Boot.__cast(c2 , ecs_CircleCollider);
-			return utils_ColliderSystem.DoCollideC(cc1,cc2);
+			return utils_ColliderSystem.DoCollide_Circle(cc1,cc2);
 		}
 	}
 	if(((c1) instanceof ecs_BoxCollider)) {
 		var cc1 = js_Boot.__cast(c1 , ecs_BoxCollider);
 		if(((c2) instanceof ecs_BoxCollider)) {
 			var cc2 = js_Boot.__cast(c2 , ecs_BoxCollider);
-			return utils_ColliderSystem.DoCollideBox(cc1,cc2);
+			return utils_ColliderSystem.DoCollide_Box(cc1,cc2);
 		}
 	}
 	return false;
 };
-utils_ColliderSystem.DoCollideC = function(c1,c2) {
+utils_ColliderSystem.DoCollide_Circle = function(c1,c2) {
 	var center1 = c1.GetCenter();
 	var center2 = c2.GetCenter();
 	if(utils_ColliderSystem.Distance(center1,center2) <= c1.radius * 0.5 + c2.radius * 0.5) {
@@ -63924,19 +63959,97 @@ utils_ColliderSystem.DoCollideC = function(c1,c2) {
 		return false;
 	}
 };
-utils_ColliderSystem.DoCollideBox = function(c1,c2) {
-	var xCollide = false;
-	var yCollide = false;
-	yCollide = utils_ColliderSystem.DoIntersect(c1.GetTop(),c2.GetTop(),c1.GetBottom(),c2.GetBottom());
-	xCollide = utils_ColliderSystem.DoIntersect(c1.GetRight(),c2.GetRight(),c1.GetLeft(),c2.GetLeft());
-	var center1 = c1.GetCenter();
-	var center2 = c2.GetCenter();
-	if(xCollide && yCollide) {
-		utils_ColliderSystem.c1Normal = new utils_Vector2(center1.x - center2.x,center1.y - center2.y).Normalized();
-		utils_ColliderSystem.c2Normal = new utils_Vector2(center2.x - center1.x,center2.y - center1.y).Normalized();
-		return true;
+utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
+	var result2;
+	var result4;
+	var xResult;
+	var yResult;
+	var u1 = c1.GetBottom();
+	var l1 = c1.GetTop();
+	var u2 = c2.GetBottom();
+	var l2 = c2.GetTop();
+	var xFirst = false;
+	var yFirst = false;
+	var result1 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
+	if(result1.intersection) {
+		yResult = result1;
+		yFirst = true;
 	} else {
-		return false;
+		result2 = utils_ColliderSystem.CheckBoxIntersection(u2,l2,u1,l1);
+		if(result2.intersection) {
+			yResult = result2;
+		} else {
+			return false;
+		}
+		yFirst = false;
+	}
+	u1 = c1.GetRight();
+	l1 = c1.GetLeft();
+	u2 = c2.GetRight();
+	l2 = c2.GetLeft();
+	var result3 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
+	if(result3.intersection) {
+		xResult = result3;
+		xFirst = true;
+	} else {
+		result4 = utils_ColliderSystem.CheckBoxIntersection(u2,l2,u1,l1);
+		if(result4.intersection) {
+			xResult = result4;
+		} else {
+			return false;
+		}
+		xFirst = false;
+	}
+	var choice = xResult.err < yResult.err;
+	if(choice) {
+		if(!xFirst) {
+			var tmp = c1;
+			c1 = c2;
+			c2 = tmp;
+		}
+		if(xResult.min > 0) {
+			c1.AddCollided(c2,new utils_Vector2(1,0));
+			c2.AddCollided(c1,new utils_Vector2(-1,0));
+		} else {
+			c1.AddCollided(c2,new utils_Vector2(-1,0));
+			c2.AddCollided(c1,new utils_Vector2(1,0));
+		}
+	} else {
+		if(!yFirst) {
+			var tmp = c1;
+			c1 = c2;
+			c2 = tmp;
+		}
+		if(yResult.min > 0) {
+			c1.AddCollided(c2,new utils_Vector2(0,1));
+			c2.AddCollided(c1,new utils_Vector2(0,-1));
+		} else {
+			c1.AddCollided(c2,new utils_Vector2(0,-1));
+			c2.AddCollided(c1,new utils_Vector2(0,1));
+		}
+	}
+	return true;
+};
+utils_ColliderSystem.CheckBoxIntersection = function(upper,lower,u1,l1) {
+	var u1_upper = u1 - upper;
+	var u1_lower = u1 - lower;
+	var l1_upper = l1 - upper;
+	var l1_lower = l1 - lower;
+	var s_u = u1_upper > 0 != u1_lower > 0;
+	var s_l = l1_upper > 0 != l1_lower > 0;
+	if(s_u || s_l) {
+		var error = 0;
+		var choice = 0;
+		if(u1_upper < l1_lower) {
+			error = Math.abs(u1_upper);
+			choice = 1;
+		} else {
+			error = Math.abs(l1_lower);
+			choice = -1;
+		}
+		return { err : error, min : choice, intersection : true};
+	} else {
+		return { err : 0, min : 0, intersection : false};
 	}
 };
 utils_ColliderSystem.Distance = function(v1,v2) {
@@ -63945,17 +64058,6 @@ utils_ColliderSystem.Distance = function(v1,v2) {
 	x *= x;
 	y *= y;
 	return Math.sqrt(x + y);
-};
-utils_ColliderSystem.DoIntersect = function(upper1,upper2,lower1,lower2) {
-	if(!(upper1 >= upper2 && lower1 <= upper2)) {
-		if(upper2 >= upper1) {
-			return lower2 <= upper1;
-		} else {
-			return false;
-		}
-	} else {
-		return true;
-	}
 };
 var utils_Vector2 = function(x,y) {
 	if(y == null) {
@@ -63977,6 +64079,11 @@ utils_Vector2.sub = function(a,b) {
 };
 utils_Vector2.multiply = function(a,b) {
 	return new utils_Vector2(a.x * b,a.y * b);
+};
+utils_Vector2.rotateBy = function(a,b) {
+	var sin = Math.sin(b);
+	var cos = Math.cos(b);
+	return new utils_Vector2(a.x * cos - a.y * sin,a.x * sin + a.y * sin);
 };
 utils_Vector2.prototype = {
 	Normalized: function() {

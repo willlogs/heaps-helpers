@@ -5,21 +5,21 @@ import utils.Vector2;
 class BoxCollider extends Collider {
     public var width:Float;
     public var height:Float;
-    public var edges:List<{center: Vector2, normal: Vector2}> = new List<{center: Vector2, normal: Vector2}>();
+    public var edges:List<Edge> = new List<Edge>();
 
-    public function new(attachee:GameObject, center:Vector2, width:Float, height:Float) {
+    public function new(attachee:GameObject, center:Vector2, width:Float, height:Float, staticity:Bool = false) {
         this.width = width;
         this.height = height;
-        super(attachee, center);
+        super(attachee, center, staticity);
         updateEdges();
     }
 
     public override function GetTop():Float {
-        return this.center.y + height / 2 + attachee.obj.y;
+        return this.center.y - height / 2 + attachee.obj.y;
     }
 
     public override function GetBottom():Float {
-        return this.center.y - height / 2 + attachee.obj.y;
+        return this.center.y + height / 2 + attachee.obj.y;
     }
 
     public override function GetLeft():Float {
@@ -47,9 +47,14 @@ class BoxCollider extends Collider {
     private function updateEdges() {
         edges.clear();
         var center = GetCenter();
-        edges.push({center: Vector2.sum(center, new Vector2(width, 0)), normal: new Vector2(1, 0)});
-        edges.push({center: Vector2.sum(center, new Vector2(-width, 0)), normal: new Vector2(-1, 0)});
-        edges.push({center: Vector2.sum(center, new Vector2(0, height)), normal: new Vector2(0, 1)});
-        edges.push({center: Vector2.sum(center, new Vector2(0, -height)), normal: new Vector2(0, -1)});
+        var left = GetLeft();
+        var right = GetLeft();
+        var top = GetLeft();
+        var bottom = GetLeft();
+        
+        edges.push(new Edge(Vector2.sum(center, new Vector2(width, 0)), new Vector2(1, 0), new Vector2(right, top), new Vector2(right, bottom))); // right
+        edges.push(new Edge(Vector2.sum(center, new Vector2(-width, 0)), new Vector2(1, 0), new Vector2(left, top), new Vector2(left, bottom))); // left
+        edges.push(new Edge(Vector2.sum(center, new Vector2(0, height)), new Vector2(1, 0), new Vector2(left, bottom), new Vector2(right, bottom))); // down
+        edges.push(new Edge(Vector2.sum(center, new Vector2(0, -height)), new Vector2(1, 0), new Vector2(left, top), new Vector2(right, top))); // up
     }
 }

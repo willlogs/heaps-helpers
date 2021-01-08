@@ -24,7 +24,6 @@ class RigidBody extends ecs.Component{
     public override function update(dt:Float) {
         for(normal in colliderNormals){
             velocity.NeutralizeBy(normal);
-            trace(velocity);
         }
         colliderNormals.clear();
 

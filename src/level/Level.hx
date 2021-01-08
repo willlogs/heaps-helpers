@@ -51,7 +51,7 @@ class Level extends Updatable {
                 for(obj in layer.objects){
                     var colliderGO = new GameObject(this.scene, obj.x, obj.y, "colliderGO");
                     var center : Vector2 = new Vector2(obj.width / 2, obj.height / 2);
-                    new BoxCollider(colliderGO, center, obj.width, obj.height);
+                    new BoxCollider(colliderGO, center, obj.width, obj.height, true);
                 }
             }
             else{

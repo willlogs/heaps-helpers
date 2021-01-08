@@ -12,11 +12,13 @@ class Collider extends Component{
     public var rb : RigidBody;
     public var hasRb : Bool = false;
     public var isTrigger : Bool;
+    public var isStatic : Bool = false;
     public var colliderEvents : ColliderEvent = new ColliderEvent();
 
-    public function new(attachee:GameObject, center:Vector2){
+    public function new(attachee:GameObject, center:Vector2, staticity:Bool = false){
         super(attachee);
         this.center = center;
+        this.isStatic = staticity;
         utils.ColliderSystem.collidersInScene.add(this);
         var component = attachee.GetComponent("RigidBody");
         
