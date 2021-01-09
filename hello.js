@@ -976,11 +976,11 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 	,GetCenter: function() {
 		return new utils_Vector2(this.center.x + this.attachee.obj.x,this.center.y + this.attachee.obj.y);
 	}
-	,AddCollided: function(c,normal) {
+	,AddCollided: function(c,normal,err) {
 		if(this.collidedWith.filter(function(cc) {
 			return cc.collider == c;
 		}).length == 0) {
-			this.collidedWith.add({ collider : c, normal : normal});
+			this.collidedWith.add({ collider : c, normal : normal, err : err});
 			this.colliderEvents.call(c);
 		}
 	}
@@ -997,14 +997,14 @@ ecs_Collider.prototype = $extend(ecs_Component.prototype,{
 				_g_head = _g_head.next;
 				var c = val;
 				if(!c.collider.isTrigger) {
-					this.ApplyPushBack(c.normal);
+					this.ApplyPushBack(c.normal,c.err);
 				}
 			}
 		}
 	}
-	,ApplyPushBack: function(pv) {
+	,ApplyPushBack: function(pv,err) {
 		if(this.hasRb && !this.rb.isTrigger) {
-			this.rb.colliderNormals.add(pv);
+			this.rb.colliderNormals.add({ n : pv, err : err});
 		}
 	}
 	,__class__: ecs_Collider
@@ -1284,11 +1284,12 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 	if(affectedByGravity == null) {
 		affectedByGravity = false;
 	}
+	this.errTolerance = 1;
 	this.colliderNormals = new haxe_ds_List();
 	this.isTrigger = false;
 	ecs_Component.call(this,attachee);
 	this.type = "RigidBody";
-	this.velocity = new utils_Vector2(40,0);
+	this.velocity = new utils_Vector2(0,0);
 	this.gravity = new utils_Vector2();
 	this.gravity.y = 2000;
 	this.affectedByGravity = affectedByGravity;
@@ -1305,7 +1306,15 @@ ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 			var val = _g_head.item;
 			_g_head = _g_head.next;
 			var normal = val;
-			this.velocity.NeutralizeBy(normal);
+			this.velocity.NeutralizeBy(normal.n);
+			if(normal.err > this.errTolerance) {
+				var _g = this.attachee.obj;
+				_g.posChanged = true;
+				_g.x += normal.n.x * normal.err * dt * 5;
+				var _g1 = this.attachee.obj;
+				_g1.posChanged = true;
+				_g1.y += normal.n.y * normal.err * dt * 5;
+			}
 		}
 		this.colliderNormals.clear();
 		var _g = this.attachee.obj;
@@ -63972,8 +63981,8 @@ utils_ColliderSystem.CheckCollide = function() {
 			var c2 = val1;
 			if(c1 != c2) {
 				if(utils_ColliderSystem.DoCollide(c1,c2)) {
-					c1.AddCollided(c2,utils_ColliderSystem.c2Normal);
-					c2.AddCollided(c1,utils_ColliderSystem.c1Normal);
+					c1.AddCollided(c2,utils_ColliderSystem.c2Normal,utils_ColliderSystem.err);
+					c2.AddCollided(c1,utils_ColliderSystem.c1Normal,utils_ColliderSystem.err);
 				} else {
 					c1.RemoveCollided(c2);
 					c2.RemoveCollided(c1);
@@ -64008,6 +64017,7 @@ utils_ColliderSystem.DoCollide_Circle = function(c1,c2) {
 	if(utils_ColliderSystem.Distance(center1,center2) <= c1.radius * 0.5 + c2.radius * 0.5) {
 		utils_ColliderSystem.c1Normal = new utils_Vector2(center1.x - center2.x,center1.y - center2.y).Normalized();
 		utils_ColliderSystem.c2Normal = new utils_Vector2(center2.x - center1.x,center2.y - center1.y).Normalized();
+		utils_ColliderSystem.err = Math.abs(center1.x - center2.x) + Math.abs(center1.y - center2.y);
 		return true;
 	} else {
 		return false;
@@ -64062,11 +64072,11 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 			c2 = tmp;
 		}
 		if(xResult.min > 0) {
-			c1.AddCollided(c2,new utils_Vector2(1,0));
-			c2.AddCollided(c1,new utils_Vector2(-1,0));
+			c1.AddCollided(c2,new utils_Vector2(1,0),xResult.err);
+			c2.AddCollided(c1,new utils_Vector2(-1,0),xResult.err);
 		} else {
-			c1.AddCollided(c2,new utils_Vector2(-1,0));
-			c2.AddCollided(c1,new utils_Vector2(1,0));
+			c1.AddCollided(c2,new utils_Vector2(-1,0),xResult.err);
+			c2.AddCollided(c1,new utils_Vector2(1,0),xResult.err);
 		}
 	} else {
 		if(!yFirst) {
@@ -64075,11 +64085,11 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 			c2 = tmp;
 		}
 		if(yResult.min > 0) {
-			c1.AddCollided(c2,new utils_Vector2(0,1));
-			c2.AddCollided(c1,new utils_Vector2(0,-1));
+			c1.AddCollided(c2,new utils_Vector2(0,1),yResult.err);
+			c2.AddCollided(c1,new utils_Vector2(0,-1),yResult.err);
 		} else {
-			c1.AddCollided(c2,new utils_Vector2(0,-1));
-			c2.AddCollided(c1,new utils_Vector2(0,1));
+			c1.AddCollided(c2,new utils_Vector2(0,-1),yResult.err);
+			c2.AddCollided(c1,new utils_Vector2(0,1),yResult.err);
 		}
 	}
 	return true;
@@ -64208,7 +64218,7 @@ Main.UpdateList = new haxe_ds_List();
 Main.Paused = false;
 Main.DebugMode = true;
 Main.timeScale = 1;
-Main.fixedDeltaTime = 0.001;
+Main.fixedDeltaTime = 0.002;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;

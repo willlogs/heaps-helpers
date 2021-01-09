@@ -8,6 +8,7 @@ class ColliderSystem{
 
     private static var c1Normal : Vector2;
     private static var c2Normal : Vector2;
+    private static var err : Float;
 
     public static function CheckCollide(){
         for(c1 in collidersInScene){
@@ -18,8 +19,8 @@ class ColliderSystem{
             for(c2 in collidersInScene){
                 if(c1 != c2){
                     if(DoCollide(c1, c2)){
-                        c1.AddCollided(c2, c2Normal);
-                        c2.AddCollided(c1, c1Normal);
+                        c1.AddCollided(c2, c2Normal, err);
+                        c2.AddCollided(c1, c1Normal, err);
                     }
                     else{
                         c1.RemoveCollided(c2);
@@ -60,6 +61,7 @@ class ColliderSystem{
         if(Distance(center1, center2) <= c1.radius * 0.5 + c2.radius * 0.5){
             c1Normal = new Vector2(center1.x - center2.x, center1.y - center2.y).Normalized();
             c2Normal = new Vector2(center2.x - center1.x, center2.y - center1.y).Normalized();
+            err = Math.abs(center1.x - center2.x) + Math.abs(center1.y - center2.y);
             return true;
         }
         else{
@@ -135,12 +137,12 @@ class ColliderSystem{
 
             if(xResult.min > 0){
                 // upper = right => push right
-                c1.AddCollided(c2, new Vector2(1, 0));
-                c2.AddCollided(c1, new Vector2(-1, 0));
+                c1.AddCollided(c2, new Vector2(1, 0), xResult.err);
+                c2.AddCollided(c1, new Vector2(-1, 0), xResult.err);
             }else{
                 // lower = left => push left
-                c1.AddCollided(c2, new Vector2(-1, 0));
-                c2.AddCollided(c1, new Vector2(1, 0));
+                c1.AddCollided(c2, new Vector2(-1, 0), xResult.err);
+                c2.AddCollided(c1, new Vector2(1, 0), xResult.err);
             }
         }
         else{
@@ -152,13 +154,13 @@ class ColliderSystem{
 
             if(yResult.min > 0){
                 // upper = down => push down
-                c1.AddCollided(c2, new Vector2(0, 1));
-                c2.AddCollided(c1, new Vector2(0, -1));
+                c1.AddCollided(c2, new Vector2(0, 1), yResult.err);
+                c2.AddCollided(c1, new Vector2(0, -1), yResult.err);
             }
             else{
                 // lower = up => push up
-                c1.AddCollided(c2, new Vector2(0, -1));
-                c2.AddCollided(c1, new Vector2(0, 1));
+                c1.AddCollided(c2, new Vector2(0, -1), yResult.err);
+                c2.AddCollided(c1, new Vector2(0, 1), yResult.err);
             }
         }
 

@@ -14,7 +14,7 @@ class Main extends hxd.App {
     public static var customGraphics : h2d.Graphics;
 
     public static var timeScale : Float = 1;
-    public static var fixedDeltaTime : Float = 0.001;
+    public static var fixedDeltaTime : Float = 0.002;
     public static var fixedTimer : FixedTimer;
 
     static function main() {

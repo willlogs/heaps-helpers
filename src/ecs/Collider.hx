@@ -14,7 +14,7 @@ class Collider extends Component{
     public var isStatic : Bool = false;
 
     public var center:Vector2;
-    public var collidedWith = new List<{collider: Collider, normal: Vector2}>();
+    public var collidedWith = new List<{collider: Collider, normal: Vector2, err: Float}>();
     public var rb : RigidBody;
     public var colliderEvents : ColliderEvent = new ColliderEvent();
 
@@ -51,10 +51,10 @@ class Collider extends Component{
         return new Vector2(center.x + attachee.obj.x, center.y + attachee.obj.y);
     }
 
-    public function AddCollided(c:Collider, normal:Vector2){
+    public function AddCollided(c:Collider, normal:Vector2, err: Float){
         if(collidedWith.filter( function (cc) return cc.collider == c).length == 0){
             // enter
-            collidedWith.add({collider: c, normal: normal});
+            collidedWith.add({collider: c, normal: normal, err: err});
             colliderEvents.call(c);
         }else{
             // stay
@@ -70,14 +70,14 @@ class Collider extends Component{
         if(!isTrigger) {
             for(c in collidedWith){
                 if(!c.collider.isTrigger)
-                    ApplyPushBack(c.normal);
+                    ApplyPushBack(c.normal, c.err);
             }
         }
     }
 
-    private function ApplyPushBack(pv:Vector2) {
+    private function ApplyPushBack(pv:Vector2, err: Float) {
         if(hasRb && !rb.isTrigger){
-            rb.colliderNormals.add(pv);
+            rb.colliderNormals.add({n: pv, err: err});
         }
     }
 }
