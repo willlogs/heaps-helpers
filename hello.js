@@ -1284,6 +1284,7 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 	if(affectedByGravity == null) {
 		affectedByGravity = false;
 	}
+	this.friction = 0.05;
 	this.errTolerance = 1;
 	this.colliderNormals = new haxe_ds_List();
 	this.isTrigger = false;
@@ -1297,6 +1298,12 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 };
 $hxClasses["ecs.RigidBody"] = ecs_RigidBody;
 ecs_RigidBody.__name__ = "ecs.RigidBody";
+ecs_RigidBody.ApplyFriction = function(velocity,normal,friction) {
+	var dot = velocity.Normalized().Dot(normal.Normalized());
+	var extent = 1 - Math.abs(dot);
+	friction = 1 - friction;
+	return new utils_Vector2(velocity.x * extent * friction,velocity.y * extent * friction);
+};
 ecs_RigidBody.__super__ = ecs_Component;
 ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 	fixedUpdate: function() {
@@ -1307,14 +1314,19 @@ ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 			_g_head = _g_head.next;
 			var normal = val;
 			this.velocity.NeutralizeBy(normal.n);
+			if(this.friction > 0) {
+				this.velocity = ecs_RigidBody.ApplyFriction(this.velocity,normal.n,this.friction);
+			}
 			if(normal.err > this.errTolerance) {
 				var _g = this.attachee.obj;
 				_g.posChanged = true;
-				_g.x += normal.n.x * normal.err * dt * 5;
+				_g.x += normal.n.x * normal.err * dt * 10;
 				var _g1 = this.attachee.obj;
 				_g1.posChanged = true;
-				_g1.y += normal.n.y * normal.err * dt * 5;
+				_g1.y += normal.n.y * normal.err * dt * 10;
 			}
+			this.velocity.x = this.velocity.x < 0.01 ? 0 : this.velocity.x;
+			this.velocity.y = this.velocity.y < 0.01 ? 0 : this.velocity.y;
 		}
 		this.colliderNormals.clear();
 		var _g = this.attachee.obj;
@@ -64032,10 +64044,6 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 	var l1 = c1.GetTop();
 	var u2 = c2.GetBottom();
 	var l2 = c2.GetTop();
-	var ud1 = c1.GetBottom();
-	var ld1 = c1.GetTop();
-	var ud2 = c2.GetBottom();
-	var ld2 = c2.GetTop();
 	var xFirst = false;
 	var yFirst = false;
 	var result1 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
@@ -64160,6 +64168,9 @@ utils_Vector2.rotateBy = function(a,b) {
 utils_Vector2.prototype = {
 	Normalized: function() {
 		var abs = this.Magnitude();
+		if(abs == 0) {
+			return new utils_Vector2(0,0);
+		}
 		return new utils_Vector2(this.x / abs,this.y / abs);
 	}
 	,NeutralizeBy: function(v) {

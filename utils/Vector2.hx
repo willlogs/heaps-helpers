@@ -11,6 +11,11 @@ class Vector2{
 
     public function Normalized():Vector2{
         var abs = Magnitude();
+
+        if(abs == 0){
+            return new Vector2(0, 0);
+        }
+
         return new Vector2(x/abs, y/abs);
     }
 
