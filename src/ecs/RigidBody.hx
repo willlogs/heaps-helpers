@@ -16,7 +16,7 @@ class RigidBody extends ecs.Component{
 
         type = "RigidBody";
 
-        velocity = new Vector2(0, 0);
+        velocity = new Vector2(40, 0);
         gravity = new Vector2();
         gravity.y = 20 * 100;
 

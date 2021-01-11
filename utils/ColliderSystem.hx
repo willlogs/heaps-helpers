@@ -70,14 +70,14 @@ class ColliderSystem{
     }
 
     public static function DoCollide_Box(c1: BoxCollider, c2: BoxCollider):Bool {
-        var result1:{err: Float, min: Int, intersection: Bool};
-        var result2:{err: Float, min: Int, intersection: Bool};
+        var result1:{err: Float, min: Int, intersection: Int};
+        var result2:{err: Float, min: Int, intersection: Int};
 
-        var result3:{err: Float, min: Int, intersection: Bool};
-        var result4:{err: Float, min: Int, intersection: Bool};
+        var result3:{err: Float, min: Int, intersection: Int};
+        var result4:{err: Float, min: Int, intersection: Int};
 
-        var xResult:{err: Float, min: Int, intersection: Bool};
-        var yResult:{err: Float, min: Int, intersection: Bool};
+        var xResult:{err: Float, min: Int, intersection: Int};
+        var yResult:{err: Float, min: Int, intersection: Int};
 
         var u1 = c1.GetBottom();
         var l1 = c1.GetTop();
@@ -85,16 +85,22 @@ class ColliderSystem{
         var u2 = c2.GetBottom();
         var l2 = c2.GetTop();
 
+        var ud1 = c1.GetBottom();
+        var ld1 = c1.GetTop();
+
+        var ud2 = c2.GetBottom();
+        var ld2 = c2.GetTop();
+
         var xFirst:Bool = false;
         var yFirst:Bool = false;
 
         result1 = CheckBoxIntersection(u1, l1, u2, l2);
-        if(result1.intersection){
+        if(result1.intersection > 0){
             yResult = result1;
             yFirst = true;
         }else{
             result2 = CheckBoxIntersection(u2, l2, u1, l1);
-            if(result2.intersection){
+            if(result2.intersection > 0){
                 yResult = result2;
             }
             else{
@@ -111,13 +117,13 @@ class ColliderSystem{
         l2 = c2.GetLeft();
 
         result3 = CheckBoxIntersection(u1, l1, u2, l2);
-        if(result3.intersection){
+        if(result3.intersection > 0){
             xResult = result3;
             xFirst = true;
         }
         else {
             result4 = CheckBoxIntersection(u2, l2, u1, l1);
-            if(result4.intersection){
+            if(result4.intersection > 0){
                 xResult = result4;
             }
             else{
@@ -126,7 +132,9 @@ class ColliderSystem{
             xFirst = false;
         }
 
-        var choice = xResult.err < yResult.err;
+        var useSecondChoice = xResult.intersection == yResult.intersection;
+        var choiceByIntersections = xResult.intersection < yResult.intersection;
+        var choice = useSecondChoice ? xResult.err < yResult.err : choiceByIntersections;
         
         if(choice){
             if(!xFirst){
@@ -136,13 +144,13 @@ class ColliderSystem{
             }
 
             if(xResult.min > 0){
-                // upper = right => push right
-                c1.AddCollided(c2, new Vector2(1, 0), xResult.err);
-                c2.AddCollided(c1, new Vector2(-1, 0), xResult.err);
-            }else{
-                // lower = left => push left
+                // upper = right => push left
                 c1.AddCollided(c2, new Vector2(-1, 0), xResult.err);
                 c2.AddCollided(c1, new Vector2(1, 0), xResult.err);
+            }else{
+                // lower = left => push right
+                c1.AddCollided(c2, new Vector2(1, 0), xResult.err);
+                c2.AddCollided(c1, new Vector2(-1, 0), xResult.err);
             }
         }
         else{
@@ -169,12 +177,22 @@ class ColliderSystem{
 
     // min = 1 means u1_upper was chosen in min as err and -1 means l1_lower
     // err is amount of intersection in collider we always fix the minimum err with pushing things out of each other xD
-    public static function CheckBoxIntersection(upper:Float, lower: Float, u1: Float, l1: Float):{err: Float, min: Int, intersection: Bool} {
+    public static function CheckBoxIntersection(upper:Float, lower: Float, u1: Float, l1: Float):{err: Float, min: Int, intersection: Int} {
         var u1_upper = u1 - upper;
         var u1_lower = u1 - lower;
 
         var l1_upper = l1 - upper;
         var l1_lower = l1 - lower;
+
+        var upper_measure = Math.min(
+            u1_upper,
+            u1_lower
+        );
+
+        var lower_measure = Math.min(
+            l1_upper,
+            l1_lower
+        );
 
         // are the signs same?
         // if not, it means intersection
@@ -184,18 +202,18 @@ class ColliderSystem{
         if(s_u || s_l){
             var error : Float = 0;
             var choice : Int = 0;
-            if(u1_upper < l1_lower){
-                error = Math.abs(u1_upper);
+            if(upper_measure < lower_measure){
+                error = Math.abs(upper_measure);
                 choice = 1;
             }
             else{
-                error = Math.abs(l1_lower);
+                error = Math.abs(lower_measure);
                 choice = -1;
             }
-            return{ err: error,  min: choice, intersection: true};
+            return{ err: error,  min: choice, intersection: s_u && s_l ? 2 : 1};
         }
         else{
-            return { err: 0, min: 0, intersection: false };
+            return { err: 0, min: 0, intersection: 0 };
         }
     }
 

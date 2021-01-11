@@ -1041,7 +1041,7 @@ ecs_BoxCollider.prototype = $extend(ecs_Collider.prototype,{
 	,update: function(dt) {
 		ecs_Collider.prototype.update.call(this,dt);
 		if(Main.DebugMode) {
-			Main.customGraphics.beginFill(16711680,0.3);
+			Main.customGraphics.beginFill(this.collidedWith.length > 0 ? 65280 : 16711680,0.3);
 			Main.customGraphics.drawRect(this.attachee.obj.x + this.center.x - this.width / 2,this.attachee.obj.y + this.center.y - this.height / 2,this.width,this.height);
 			Main.customGraphics.endFill();
 		}
@@ -1289,7 +1289,7 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 	this.isTrigger = false;
 	ecs_Component.call(this,attachee);
 	this.type = "RigidBody";
-	this.velocity = new utils_Vector2(0,0);
+	this.velocity = new utils_Vector2(40,0);
 	this.gravity = new utils_Vector2();
 	this.gravity.y = 2000;
 	this.affectedByGravity = affectedByGravity;
@@ -64032,15 +64032,19 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 	var l1 = c1.GetTop();
 	var u2 = c2.GetBottom();
 	var l2 = c2.GetTop();
+	var ud1 = c1.GetBottom();
+	var ld1 = c1.GetTop();
+	var ud2 = c2.GetBottom();
+	var ld2 = c2.GetTop();
 	var xFirst = false;
 	var yFirst = false;
 	var result1 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
-	if(result1.intersection) {
+	if(result1.intersection > 0) {
 		yResult = result1;
 		yFirst = true;
 	} else {
 		result2 = utils_ColliderSystem.CheckBoxIntersection(u2,l2,u1,l1);
-		if(result2.intersection) {
+		if(result2.intersection > 0) {
 			yResult = result2;
 		} else {
 			return false;
@@ -64052,19 +64056,21 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 	u2 = c2.GetRight();
 	l2 = c2.GetLeft();
 	var result3 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
-	if(result3.intersection) {
+	if(result3.intersection > 0) {
 		xResult = result3;
 		xFirst = true;
 	} else {
 		result4 = utils_ColliderSystem.CheckBoxIntersection(u2,l2,u1,l1);
-		if(result4.intersection) {
+		if(result4.intersection > 0) {
 			xResult = result4;
 		} else {
 			return false;
 		}
 		xFirst = false;
 	}
-	var choice = xResult.err < yResult.err;
+	var useSecondChoice = xResult.intersection == yResult.intersection;
+	var choiceByIntersections = xResult.intersection < yResult.intersection;
+	var choice = useSecondChoice ? xResult.err < yResult.err : choiceByIntersections;
 	if(choice) {
 		if(!xFirst) {
 			var tmp = c1;
@@ -64072,11 +64078,11 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 			c2 = tmp;
 		}
 		if(xResult.min > 0) {
-			c1.AddCollided(c2,new utils_Vector2(1,0),xResult.err);
-			c2.AddCollided(c1,new utils_Vector2(-1,0),xResult.err);
-		} else {
 			c1.AddCollided(c2,new utils_Vector2(-1,0),xResult.err);
 			c2.AddCollided(c1,new utils_Vector2(1,0),xResult.err);
+		} else {
+			c1.AddCollided(c2,new utils_Vector2(1,0),xResult.err);
+			c2.AddCollided(c1,new utils_Vector2(-1,0),xResult.err);
 		}
 	} else {
 		if(!yFirst) {
@@ -64099,21 +64105,23 @@ utils_ColliderSystem.CheckBoxIntersection = function(upper,lower,u1,l1) {
 	var u1_lower = u1 - lower;
 	var l1_upper = l1 - upper;
 	var l1_lower = l1 - lower;
+	var upper_measure = Math.min(u1_upper,u1_lower);
+	var lower_measure = Math.min(l1_upper,l1_lower);
 	var s_u = u1_upper > 0 != u1_lower > 0;
 	var s_l = l1_upper > 0 != l1_lower > 0;
 	if(s_u || s_l) {
 		var error = 0;
 		var choice = 0;
-		if(u1_upper < l1_lower) {
-			error = Math.abs(u1_upper);
+		if(upper_measure < lower_measure) {
+			error = Math.abs(upper_measure);
 			choice = 1;
 		} else {
-			error = Math.abs(l1_lower);
+			error = Math.abs(lower_measure);
 			choice = -1;
 		}
-		return { err : error, min : choice, intersection : true};
+		return { err : error, min : choice, intersection : s_u && s_l ? 2 : 1};
 	} else {
-		return { err : 0, min : 0, intersection : false};
+		return { err : 0, min : 0, intersection : 0};
 	}
 };
 utils_ColliderSystem.Distance = function(v1,v2) {

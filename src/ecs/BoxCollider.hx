@@ -38,7 +38,7 @@ class BoxCollider extends Collider {
         super.update(dt);
 
         if(Main.DebugMode){
-            Main.customGraphics.beginFill(0xff0000, 0.3);
+            Main.customGraphics.beginFill(collidedWith.length > 0 ? 0x00ff00 : 0xff0000, 0.3);
             Main.customGraphics.drawRect(attachee.obj.x + center.x - width/2, attachee.obj.y + center.y - height/2, width, height);
             Main.customGraphics.endFill();
         }
