@@ -85,12 +85,6 @@ class ColliderSystem{
         var u2 = c2.GetBottom();
         var l2 = c2.GetTop();
 
-        var ud1 = c1.GetBottom();
-        var ld1 = c1.GetTop();
-
-        var ud2 = c2.GetBottom();
-        var ld2 = c2.GetTop();
-
         var xFirst:Bool = false;
         var yFirst:Bool = false;
 
