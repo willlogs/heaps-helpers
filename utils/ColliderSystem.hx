@@ -1,6 +1,5 @@
 package utils;
 
-import haxe.ds.Vector;
 import ecs.*;
 
 class ColliderSystem{
@@ -85,6 +84,12 @@ class ColliderSystem{
         var u2 = c2.GetBottom();
         var l2 = c2.GetTop();
 
+        var ud1 = c1.GetBottom();
+        var ld1 = c1.GetTop();
+
+        var ud2 = c2.GetBottom();
+        var ld2 = c2.GetTop();
+
         var xFirst:Bool = false;
         var yFirst:Bool = false;
 
@@ -129,6 +134,8 @@ class ColliderSystem{
         var useSecondChoice = xResult.intersection == yResult.intersection;
         var choiceByIntersections = xResult.intersection < yResult.intersection;
         var choice = useSecondChoice ? xResult.err < yResult.err : choiceByIntersections;
+
+        result3 = CheckBoxIntersection(u1, l1, u2, l2);
         
         if(choice){
             if(!xFirst){
@@ -139,12 +146,12 @@ class ColliderSystem{
 
             if(xResult.min > 0){
                 // upper = right => push left
-                c1.AddCollided(c2, new Vector2(-1, 0), xResult.err);
-                c2.AddCollided(c1, new Vector2(1, 0), xResult.err);
-            }else{
-                // lower = left => push right
                 c1.AddCollided(c2, new Vector2(1, 0), xResult.err);
                 c2.AddCollided(c1, new Vector2(-1, 0), xResult.err);
+            }else{
+                // lower = left => push right
+                c1.AddCollided(c2, new Vector2(-1, 0), xResult.err);
+                c2.AddCollided(c1, new Vector2(1, 0), xResult.err);
             }
         }
         else{
@@ -179,13 +186,13 @@ class ColliderSystem{
         var l1_lower = l1 - lower;
 
         var upper_measure = Math.min(
-            u1_upper,
-            u1_lower
+            Math.abs(u1_upper),
+            Math.abs(u1_lower)
         );
 
         var lower_measure = Math.min(
-            l1_upper,
-            l1_lower
+            Math.abs(l1_upper),
+            Math.abs(l1_lower)
         );
 
         // are the signs same?

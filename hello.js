@@ -376,18 +376,17 @@ Main.prototype = $extend(hxd_App.prototype,{
 		Main.fixedTimer = new ecs_FixedTimer(Main.fixedDeltaTime * 1000 | 0);
 		Main.fixedTimer.hooks.add($bind(this,this.fixedUpdate));
 		var font = hxd_res_DefaultFont.get();
-		var tf = new h2d_Text(font);
-		tf.set_text("Hello World");
-		var mainLevel = new level_Level(hxd_Res.get_loader().loadCache("map1.json",hxd_res_Resource).entry,hxd_Res.get_loader().loadCache("cavestileset.png",hxd_res_Image).toTile(),8,8);
-		mainLevel.preRender();
-		this.s2d = mainLevel.scene;
-		this.s2d.addChild(tf);
+		Main.tf = new h2d_Text(font);
+		Main.mainLevel = new level_Level(hxd_Res.get_loader().loadCache("map1.json",hxd_res_Resource).entry,hxd_Res.get_loader().loadCache("cavestileset.png",hxd_res_Image).toTile(),8,8);
+		Main.mainLevel.preRender();
+		this.s2d = Main.mainLevel.scene;
+		this.s2d.addChild(Main.tf);
 		if(Main.DebugMode) {
 			Main.customGraphics = new h2d_Graphics(this.s2d);
 		}
-		var testGO = new ecs_GameObject(this.s2d,20,10);
-		new ecs_RigidBody(testGO,true);
-		new ecs_BoxCollider(testGO,new utils_Vector2(0,0),10,10);
+		var testGO = new ecs_GameObject(this.s2d,20,190);
+		Main.rb_ = new ecs_RigidBody(testGO,true,false,0.05);
+		new ecs_BoxCollider(testGO,new utils_Vector2(0,0),5,5);
 	}
 	,update: function(dt) {
 		if(Main.DebugMode) {
@@ -415,6 +414,26 @@ Main.prototype = $extend(hxd_App.prototype,{
 				var updatable = val;
 				updatable.afterUpdate(dt);
 			}
+			Main.mainLevel.setCam(Main.rb_.attachee.obj.x,Main.rb_.attachee.obj.y);
+		}
+		try {
+			Main.tf.color = new h3d_Vector(1,1,1);
+			Main.tf.set_text(Main.rb_.colliderNormals.first().n.x + " " + Main.rb_.colliderNormals.first().n.y);
+			var _this = Main.tf;
+			_this.posChanged = true;
+			_this.x = Main.rb_.attachee.obj.x;
+			var _this = Main.tf;
+			_this.posChanged = true;
+			_this.y = Main.rb_.attachee.obj.y;
+		} catch( _g ) {
+			Main.tf.color = new h3d_Vector(0,1,0);
+			Main.tf.set_text((Main.rb_.attachee.obj.x | 0) + " " + (Main.rb_.attachee.obj.y | 0));
+			var _this = Main.tf;
+			_this.posChanged = true;
+			_this.x = Main.rb_.attachee.obj.x;
+			var _this = Main.tf;
+			_this.posChanged = true;
+			_this.y = Main.rb_.attachee.obj.y;
 		}
 	}
 	,fixedUpdate: function() {
@@ -428,6 +447,18 @@ Main.prototype = $extend(hxd_App.prototype,{
 				updatable.fixedUpdate();
 			}
 		}
+		if(hxd_Key.isDown(68)) {
+			Main.rb_.velocity = new utils_Vector2(100,Main.rb_.velocity.y);
+		}
+		if(hxd_Key.isDown(65)) {
+			Main.rb_.velocity = new utils_Vector2(-100,Main.rb_.velocity.y);
+		}
+		if(hxd_Key.isReleased(32)) {
+			Main.rb_.velocity = new utils_Vector2(Main.rb_.velocity.x,-300);
+		}
+		if(hxd_Key.isReleased(70)) {
+			Main.Paused = !Main.Paused;
+		}
 	}
 	,OnEvent: function(event) {
 		switch(event.kind._hx_index) {
@@ -437,12 +468,17 @@ Main.prototype = $extend(hxd_App.prototype,{
 		case 2:
 			this.MouseMoveEvent(event);
 			break;
+		case 8:
+			this.KeyDownEvent(event);
+			break;
 		default:
 		}
 	}
 	,MouseMoveEvent: function(event) {
 	}
 	,MouseClickEvent: function(event) {
+	}
+	,KeyDownEvent: function(event) {
 	}
 	,__class__: Main
 });
@@ -1277,7 +1313,10 @@ ecs_GameObject.prototype = $extend(ecs_Updatable.prototype,{
 	}
 	,__class__: ecs_GameObject
 });
-var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
+var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger,friction) {
+	if(friction == null) {
+		friction = 0;
+	}
 	if(isTrigger == null) {
 		isTrigger = false;
 	}
@@ -1285,7 +1324,7 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 		affectedByGravity = false;
 	}
 	this.friction = 0.05;
-	this.errTolerance = 1;
+	this.errTolerance = 0.1;
 	this.colliderNormals = new haxe_ds_List();
 	this.isTrigger = false;
 	ecs_Component.call(this,attachee);
@@ -1295,14 +1334,17 @@ var ecs_RigidBody = function(attachee,affectedByGravity,isTrigger) {
 	this.gravity.y = 2000;
 	this.affectedByGravity = affectedByGravity;
 	this.isTrigger = isTrigger;
+	this.friction = friction;
 };
 $hxClasses["ecs.RigidBody"] = ecs_RigidBody;
 ecs_RigidBody.__name__ = "ecs.RigidBody";
 ecs_RigidBody.ApplyFriction = function(velocity,normal,friction) {
 	var dot = velocity.Normalized().Dot(normal.Normalized());
 	var extent = 1 - Math.abs(dot);
+	var oneMinusExtent = 1 - extent;
 	friction = 1 - friction;
-	return new utils_Vector2(velocity.x * extent * friction,velocity.y * extent * friction);
+	friction *= extent;
+	return new utils_Vector2(velocity.x * friction + velocity.x * oneMinusExtent,velocity.y);
 };
 ecs_RigidBody.__super__ = ecs_Component;
 ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
@@ -1313,20 +1355,21 @@ ecs_RigidBody.prototype = $extend(ecs_Component.prototype,{
 			var val = _g_head.item;
 			_g_head = _g_head.next;
 			var normal = val;
-			this.velocity.NeutralizeBy(normal.n);
+			var normalVector = new utils_Vector2(-normal.n.x,-normal.n.y);
+			this.velocity.NeutralizeBy(normalVector);
 			if(this.friction > 0) {
 				this.velocity = ecs_RigidBody.ApplyFriction(this.velocity,normal.n,this.friction);
 			}
 			if(normal.err > this.errTolerance) {
 				var _g = this.attachee.obj;
 				_g.posChanged = true;
-				_g.x += normal.n.x * normal.err * dt * 10;
+				_g.x += normal.n.x * normal.err * dt * 20;
 				var _g1 = this.attachee.obj;
 				_g1.posChanged = true;
-				_g1.y += normal.n.y * normal.err * dt * 10;
+				_g1.y += normal.n.y * normal.err * dt * 20;
 			}
-			this.velocity.x = this.velocity.x < 0.01 ? 0 : this.velocity.x;
-			this.velocity.y = this.velocity.y < 0.01 ? 0 : this.velocity.y;
+			this.velocity.x = Math.abs(this.velocity.x) < 0.01 ? 0 : this.velocity.x;
+			this.velocity.y = Math.abs(this.velocity.y) < 0.01 ? 0 : this.velocity.y;
 		}
 		this.colliderNormals.clear();
 		var _g = this.attachee.obj;
@@ -63874,6 +63917,7 @@ var level_Level = function(mapEntry,tileset,tw,th) {
 	this.ANTIDIAGONALFLIPFLAG = 536870912;
 	this.VERTICALFLIPFLAG = 1073741824;
 	this.HORIZONTALFLIPFLAG = -2147483648;
+	this.scale = 5;
 	this.levelMap = new level_Map(mapEntry);
 	this.tw = tw;
 	this.th = th;
@@ -63954,10 +63998,19 @@ level_Level.prototype = $extend(ecs_Updatable.prototype,{
 			}
 		}
 		var _this = this.scene;
+		var v = this.scale;
 		_this.posChanged = true;
-		_this.scaleX = 2;
+		_this.scaleX = v;
 		_this.posChanged = true;
-		_this.scaleY = 2;
+		_this.scaleY = v;
+	}
+	,setCam: function(x,y) {
+		var _this = this.scene;
+		_this.posChanged = true;
+		_this.x = -x * this.scale + this.scene.width / 2;
+		var _this = this.scene;
+		_this.posChanged = true;
+		_this.y = -y * this.scale + this.scene.height / 2;
 	}
 	,update: function(dt) {
 		return;
@@ -64044,6 +64097,10 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 	var l1 = c1.GetTop();
 	var u2 = c2.GetBottom();
 	var l2 = c2.GetTop();
+	var ud1 = c1.GetBottom();
+	var ld1 = c1.GetTop();
+	var ud2 = c2.GetBottom();
+	var ld2 = c2.GetTop();
 	var xFirst = false;
 	var yFirst = false;
 	var result1 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
@@ -64079,6 +64136,7 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 	var useSecondChoice = xResult.intersection == yResult.intersection;
 	var choiceByIntersections = xResult.intersection < yResult.intersection;
 	var choice = useSecondChoice ? xResult.err < yResult.err : choiceByIntersections;
+	result3 = utils_ColliderSystem.CheckBoxIntersection(u1,l1,u2,l2);
 	if(choice) {
 		if(!xFirst) {
 			var tmp = c1;
@@ -64086,11 +64144,11 @@ utils_ColliderSystem.DoCollide_Box = function(c1,c2) {
 			c2 = tmp;
 		}
 		if(xResult.min > 0) {
-			c1.AddCollided(c2,new utils_Vector2(-1,0),xResult.err);
-			c2.AddCollided(c1,new utils_Vector2(1,0),xResult.err);
-		} else {
 			c1.AddCollided(c2,new utils_Vector2(1,0),xResult.err);
 			c2.AddCollided(c1,new utils_Vector2(-1,0),xResult.err);
+		} else {
+			c1.AddCollided(c2,new utils_Vector2(-1,0),xResult.err);
+			c2.AddCollided(c1,new utils_Vector2(1,0),xResult.err);
 		}
 	} else {
 		if(!yFirst) {
@@ -64113,8 +64171,8 @@ utils_ColliderSystem.CheckBoxIntersection = function(upper,lower,u1,l1) {
 	var u1_lower = u1 - lower;
 	var l1_upper = l1 - upper;
 	var l1_lower = l1 - lower;
-	var upper_measure = Math.min(u1_upper,u1_lower);
-	var lower_measure = Math.min(l1_upper,l1_lower);
+	var upper_measure = Math.min(Math.abs(u1_upper),Math.abs(u1_lower));
+	var lower_measure = Math.min(Math.abs(l1_upper),Math.abs(l1_lower));
 	var s_u = u1_upper > 0 != u1_lower > 0;
 	var s_l = l1_upper > 0 != l1_lower > 0;
 	if(s_u || s_l) {
@@ -64175,7 +64233,14 @@ utils_Vector2.prototype = {
 	}
 	,NeutralizeBy: function(v) {
 		var normalV = v.Normalized();
-		var m = utils_Vector2.multiply(normalV,this.Dot(normalV));
+		var dotProduct = this.Dot(normalV);
+		if(dotProduct < 0) {
+			haxe_Log.trace("neg",{ fileName : "utils/Vector2.hx", lineNumber : 28, className : "utils.Vector2", methodName : "NeutralizeBy"});
+		}
+		if(!(dotProduct >= 0)) {
+			dotProduct = 0;
+		}
+		var m = utils_Vector2.multiply(normalV,dotProduct);
 		this.x -= m.x;
 		this.y -= m.y;
 	}
@@ -64237,7 +64302,7 @@ Main.UpdateList = new haxe_ds_List();
 Main.Paused = false;
 Main.DebugMode = true;
 Main.timeScale = 1;
-Main.fixedDeltaTime = 0.002;
+Main.fixedDeltaTime = 0.005;
 Xml.Element = 0;
 Xml.PCData = 1;
 Xml.CData = 2;

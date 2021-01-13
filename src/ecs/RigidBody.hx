@@ -9,7 +9,7 @@ class RigidBody extends ecs.Component{
     public var affectedByGravity:Bool;
     public var isTrigger:Bool = false;
     public var colliderNormals : List<{n: Vector2, err: Float}> = new List<{n: Vector2, err: Float}>();
-    public var errTolerance : Float = 1;
+    public var errTolerance : Float = 0.1;
     public var friction : Float = 0.05;
 
     public function new(attachee:ecs.GameObject, affectedByGravity:Bool = false, isTrigger:Bool = false, friction:Float = 0){
@@ -29,18 +29,20 @@ class RigidBody extends ecs.Component{
     public override function fixedUpdate() {
         var dt = Main.fixedDeltaTime;
         for(normal in colliderNormals){
-            velocity.NeutralizeBy(normal.n);
+            var normalVector : Vector2 = new Vector2(-normal.n.x, -normal.n.y);
+            velocity.NeutralizeBy(normalVector);
 
-            if(friction > 0)
+            if(friction > 0){
                 velocity = RigidBody.ApplyFriction(velocity, normal.n, friction);
+            }
             
             if(normal.err > errTolerance){
-                attachee.obj.x += normal.n.x * normal.err * dt * 10;
-                attachee.obj.y += normal.n.y * normal.err * dt * 10;
+                attachee.obj.x += normal.n.x * normal.err * dt * 20;
+                attachee.obj.y += normal.n.y * normal.err * dt * 20;
             }
 
-            velocity.x = velocity.x < 0.01 ? 0 : velocity.x;
-            velocity.y = velocity.y < 0.01 ? 0 : velocity.y;
+            velocity.x = Math.abs(velocity.x) < 0.01 ? 0 : velocity.x;
+            velocity.y = Math.abs(velocity.y) < 0.01 ? 0 : velocity.y;
         }
         colliderNormals.clear();
 
@@ -56,9 +58,11 @@ class RigidBody extends ecs.Component{
     public static function ApplyFriction(velocity: Vector2, normal: Vector2, friction: Float) : Vector2 {
         var dot = velocity.Normalized().Dot(normal.Normalized());
         var extent = 1 - Math.abs(dot);
+        var oneMinusExtent = 1 - extent;
 
         friction = 1 - friction;
+        friction *= extent;
 
-        return new Vector2(velocity.x * extent * friction, velocity.y * extent * friction);
+        return new Vector2(velocity.x * friction + velocity.x * oneMinusExtent, velocity.y);
     }
 }

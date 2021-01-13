@@ -21,7 +21,16 @@ class Vector2{
 
     public function NeutralizeBy(v:Vector2){
         var normalV = v.Normalized();
-        var m = multiply(normalV, Dot(normalV));
+
+        var dotProduct = Dot(normalV);
+
+        if(dotProduct < 0){
+            trace("neg");
+        }
+
+        dotProduct = dotProduct >= 0 ? dotProduct : 0;
+
+        var m = multiply(normalV, dotProduct);
         x -= m.x;
         y -= m.y;
     }

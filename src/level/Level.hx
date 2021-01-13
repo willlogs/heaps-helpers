@@ -23,6 +23,7 @@ class Level extends Updatable {
 
     private var tw : Int;
     private var th : Int;
+    private var scale : Int = 5;
 
     private var HORIZONTALFLIPFLAG(default, never) : Int = 0x80000000;
     private var VERTICALFLIPFLAG(default, never) : Int = 0x40000000;
@@ -90,7 +91,12 @@ class Level extends Updatable {
             }
         }
 
-        this.scene.setScale(2);
+        this.scene.setScale(scale);
+    }
+
+    public function setCam(x: Float, y: Float) {
+        this.scene.x = -x * scale + this.scene.width / 2;
+        this.scene.y = -y * scale + this.scene.height / 2;
     }
 
     public override function update(dt:Float) {
