@@ -35,22 +35,14 @@ class Main extends hxd.App {
         fixedTimer = new FixedTimer(Std.int(fixedDeltaTime * 1000));
         fixedTimer.hooks.add(this.fixedUpdate);
 
-        var font : Font = hxd.res.DefaultFont.get();
-        tf = new h2d.Text(font);
-
-        mainLevel = new Level(Res.map1.entry, Res.cavestileset.toTile(), 8, 8);
-        mainLevel.preRender();
-        s2d = mainLevel.scene;
-
-        s2d.addChild(tf);
-
         if(DebugMode){            
             customGraphics = new h2d.Graphics(s2d);
         }
 
-        var testGO : GameObject = new GameObject(s2d, 20, 190);
-        rb_ = new RigidBody(testGO, true, false, 0.05);
-        new BoxCollider(testGO, new Vector2(0, 0), 5, 5);
+        var font : Font = hxd.res.DefaultFont.get();
+        tf = new h2d.Text(font);
+        tf.text = "Hello World";
+        s2d.addChild(tf);
     }
 
     override function update(dt:Float) {
@@ -74,20 +66,6 @@ class Main extends hxd.App {
             for(updatable in UpdateList){
                 updatable.afterUpdate(dt);
             }
-
-            mainLevel.setCam(rb_.attachee.obj.x, rb_.attachee.obj.y);
-        }
-
-        try{
-            tf.color = new Vector(1, 1, 1);
-            tf.text = rb_.colliderNormals.first().n.x + " " + rb_.colliderNormals.first().n.y;
-            tf.x = rb_.attachee.obj.x;
-            tf.y = rb_.attachee.obj.y;
-        } catch(e) {
-            tf.color = new Vector(0, 1, 0);
-            tf.text = Std.int(rb_.attachee.obj.x) + " " + Std.int(rb_.attachee.obj.y);
-            tf.x = rb_.attachee.obj.x;
-            tf.y = rb_.attachee.obj.y;
         }
     }
 
@@ -98,18 +76,6 @@ class Main extends hxd.App {
             for(updatable in UpdateList){
                 updatable.fixedUpdate();
             }
-        }
-
-        if(Key.isDown(Key.D)){
-            rb_.velocity = new Vector2(100, rb_.velocity.y);
-        }
-
-        if(Key.isDown(Key.A)){
-            rb_.velocity = new Vector2(-100, rb_.velocity.y);
-        }
-
-        if(Key.isReleased(Key.SPACE)){
-            rb_.velocity = new Vector2(rb_.velocity.x, -300);
         }
 
         if(Key.isReleased(Key.F)){

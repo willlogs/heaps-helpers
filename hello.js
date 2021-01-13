@@ -375,18 +375,13 @@ Main.prototype = $extend(hxd_App.prototype,{
 		hxd_Window.getInstance().addEventTarget($bind(this,this.OnEvent));
 		Main.fixedTimer = new ecs_FixedTimer(Main.fixedDeltaTime * 1000 | 0);
 		Main.fixedTimer.hooks.add($bind(this,this.fixedUpdate));
-		var font = hxd_res_DefaultFont.get();
-		Main.tf = new h2d_Text(font);
-		Main.mainLevel = new level_Level(hxd_Res.get_loader().loadCache("map1.json",hxd_res_Resource).entry,hxd_Res.get_loader().loadCache("cavestileset.png",hxd_res_Image).toTile(),8,8);
-		Main.mainLevel.preRender();
-		this.s2d = Main.mainLevel.scene;
-		this.s2d.addChild(Main.tf);
 		if(Main.DebugMode) {
 			Main.customGraphics = new h2d_Graphics(this.s2d);
 		}
-		var testGO = new ecs_GameObject(this.s2d,20,190);
-		Main.rb_ = new ecs_RigidBody(testGO,true,false,0.05);
-		new ecs_BoxCollider(testGO,new utils_Vector2(0,0),5,5);
+		var font = hxd_res_DefaultFont.get();
+		Main.tf = new h2d_Text(font);
+		Main.tf.set_text("Hello World");
+		this.s2d.addChild(Main.tf);
 	}
 	,update: function(dt) {
 		if(Main.DebugMode) {
@@ -414,26 +409,6 @@ Main.prototype = $extend(hxd_App.prototype,{
 				var updatable = val;
 				updatable.afterUpdate(dt);
 			}
-			Main.mainLevel.setCam(Main.rb_.attachee.obj.x,Main.rb_.attachee.obj.y);
-		}
-		try {
-			Main.tf.color = new h3d_Vector(1,1,1);
-			Main.tf.set_text(Main.rb_.colliderNormals.first().n.x + " " + Main.rb_.colliderNormals.first().n.y);
-			var _this = Main.tf;
-			_this.posChanged = true;
-			_this.x = Main.rb_.attachee.obj.x;
-			var _this = Main.tf;
-			_this.posChanged = true;
-			_this.y = Main.rb_.attachee.obj.y;
-		} catch( _g ) {
-			Main.tf.color = new h3d_Vector(0,1,0);
-			Main.tf.set_text((Main.rb_.attachee.obj.x | 0) + " " + (Main.rb_.attachee.obj.y | 0));
-			var _this = Main.tf;
-			_this.posChanged = true;
-			_this.x = Main.rb_.attachee.obj.x;
-			var _this = Main.tf;
-			_this.posChanged = true;
-			_this.y = Main.rb_.attachee.obj.y;
 		}
 	}
 	,fixedUpdate: function() {
@@ -446,15 +421,6 @@ Main.prototype = $extend(hxd_App.prototype,{
 				var updatable = val;
 				updatable.fixedUpdate();
 			}
-		}
-		if(hxd_Key.isDown(68)) {
-			Main.rb_.velocity = new utils_Vector2(100,Main.rb_.velocity.y);
-		}
-		if(hxd_Key.isDown(65)) {
-			Main.rb_.velocity = new utils_Vector2(-100,Main.rb_.velocity.y);
-		}
-		if(hxd_Key.isReleased(32)) {
-			Main.rb_.velocity = new utils_Vector2(Main.rb_.velocity.x,-300);
 		}
 		if(hxd_Key.isReleased(70)) {
 			Main.Paused = !Main.Paused;
