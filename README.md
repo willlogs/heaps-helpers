@@ -1,3 +1,5 @@
+<<This repository is in development so it's gonna be subject to often changes>>
+
 # Heaps.io Basecode
 
 This is a base code for heaps.io that I used in a series of tutorials:
