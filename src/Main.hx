@@ -51,6 +51,8 @@ class Main extends hxd.App {
         var testGO : GameObject = new GameObject(s2d, 20, 190);
         rb_ = new RigidBody(testGO, true, false, 0.05);
         new BoxCollider(testGO, new Vector2(0, 0), 5, 5);
+        new Sprite(testGO, Res.sprite_sheet.toTile());
+        new Animation(testGO, Res.sprite_sheet.toTile(), 16, 16, 5, new Vector2(0, -6));
     }
 
     override function update(dt:Float) {

@@ -26,6 +26,7 @@ class GameObject extends Updatable{
         tag = t;
 
         Main.UpdateList.add(this);
+        scene.addChild(this.obj);
     }
 
     public function addChild(go: GameObject) {
