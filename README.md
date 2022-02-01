@@ -1,4 +1,4 @@
-<<This repository is in development so it's gonna be subject to often changes>>
+<<This repository is in development so...>>
 
 # Heaps.io Basecode
 
